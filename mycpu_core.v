@@ -22,152 +22,157 @@ module mycpu_core(
     output wire [31:0] debug_wb_rf_wdata 
 );
 
+    wire [`PC_TO_IC_WD-1:0] pc_to_ic_bus;
+    wire [`IC_TO_ID_WD-1:0] ic_to_id_bus;
+    wire [`ID_TO_EX_WD-1:0] id_to_ex_bus;
+    wire [`EX_TO_DC_WD-1:0] ex_to_dc_bus;
+    wire [`DC_TO_MEM_WD-1:0] dc_to_mem_bus;
+    wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus;
+    wire [`BR_WD-1:0] br_bus; 
+
+
     //ctrl 
     wire [`StallBus] stall;
     wire flush;
     wire [`InstAddrBus] new_pc;
 
 
-    // pc --> icache
-    wire [`InstAddrBus] pc_pc;
-    wire pc_ce;
-    assign inst_sram_en     = rst ? 1'b0 : pc_ce;
+    // assign inst_sram_en     = rst ? 1'b0 : pc_ce;
     assign inst_sram_wen    = 4'b0;
-    assign inst_sram_addr   = rst ? 32'b0 : pc_pc;
+    // assign inst_sram_addr   = rst ? 32'b0 : pc_pc;
     assign inst_sram_wdata  = 32'b0;
-
-    // icache --> if_id
-    wire [`InstAddrBus] if_pc;
-    wire if_ce;
-    wire [`InstBus] if_inst;
-    assign if_inst = rst ? 32'b0 : inst_sram_rdata;
-
-    // if_id --> id
-    wire [`InstAddrBus] id_pc;
-    wire [`InstBus] id_inst;
+    assign {
+        inst_sram_en,
+        inst_sram_addr
+    } = rst ? 33'b0 : pc_to_ic_bus[`PC_TO_IC_WD-2:0];
     
+
+    wire [`InstBus] ic_inst;
+    assign ic_inst = rst ? 32'b0 
+                   : ic_to_id_bus[32] ? inst_sram_rdata 
+                   : 32'b0;
 
     pc u_pc(
-    	.clk                (clk                ),
-        .rst                (rst                ),
-        .stall              (stall              ),
-        .flush              (flush              ),
-        .new_pc             (new_pc             ),
-        .branch_e           (branch_e           ),
-        .branch_target_addr (branch_target_addr ),
-        .pc                 (pc_pc              ),
-        .ce                 (pc_ce              ),
-        .excepttype_o       (excepttype_o       )
-    );
-
-    icache u_icache(
-    	.clk       (clk       ),
-        .rst       (rst       ),
-        .stall     (stall     ),
-        .flush     (flush     ),
-        .pc_pc     (pc_pc     ),
-        .pc_ce     (pc_ce     ),
-        .icache_pc (if_pc     ),
-        .icache_ce (if_ce     )
-    );
-
-    if_id u_if_id(
-    	.clk     (clk     ),
-        .rst     (rst     ),
-        .flush   (flush   ),
-        .stall   (stall   ),
-        .if_pc   (if_pc   ),
-        .if_inst (if_inst ),
-        .id_pc   (id_pc   ),
-        .id_inst (id_inst )
-    );
-    
-    id u_id(
     	.clk          (clk          ),
         .rst          (rst          ),
-        .stallreq     (stallreq     ),
-        .pc_i         (id_pc        ),
-        .inst_i       (id_inst      ),
-        .wb_rf_we     (wb_rf_we     ),
-        .wb_rf_waddr  (wb_rf_waddr  ),
-        .wb_rf_wdata  (wb_rf_wdata  ),
-        .sel_nextpc   (sel_nextpc   ),
-        .sel_alu_src1 (sel_alu_src1 ),
-        .sel_alu_src2 (sel_alu_src2 ),
-        .alu_op       (alu_op       ),
-        .data_ram_en  (data_ram_en  ),
-        .data_ram_wen (data_ram_wen ),
-        .rf_we        (rf_we        ),
-        .rf_waddr     (rf_waddr     ),
-        .sel_rf_res   (sel_rf_res   ),
-        .rf_rdata1    (rf_rdata1    ),
-        .rf_rdata2    (rf_rdata2    )
+        .stall        (stall        ),
+        .flush        (0        ),
+        .new_pc       (new_pc       ),
+        .br_bus       (br_bus       ),
+        .pc_to_ic_bus (pc_to_ic_bus )
+    );
+    
+    
+    ic u_ic(
+    	.clk          (clk          ),
+        .rst          (rst          ),
+        .stall        (stall        ),
+        .flush        (flush        ),
+        .br_e         (br_bus[32]   ),
+        .pc_to_ic_bus (pc_to_ic_bus ),
+        .ic_to_id_bus (ic_to_id_bus )
     );
 
-    id_ex u_id_ex(
-    	.clk                (clk                ),
-        .rst                (rst                ),
-        .flush              (flush              ),
-        .stall              (stall              ),
-        .id_pc              (id_pc              ),
-        .id_inst            (id_inst            ),
-        .sel_nextpc         (sel_nextpc         ),
-        .id_sel_alu_src1    (id_sel_alu_src1    ),
-        .id_sel_alu_src2    (id_sel_alu_src2    ),
-        .id_alu_op          (id_alu_op          ),
-        .id_data_ram_en     (id_data_ram_en     ),
-        .id_data_ram_wen    (id_data_ram_wen    ),
-        .id_rf_we           (id_rf_we           ),
-        .id_sel_rf_dst      (id_sel_rf_dst      ),
-        .sel_rf_res         (sel_rf_res         ),
-        .id_rf_rdata1       (id_rf_rdata1       ),
-        .id_rf_rdata2       (id_rf_rdata2       ),
-        .id_imm_sign_extend (id_imm_sign_extend ),
-        .id_sa_zero_extend  (id_sa_zero_extend  ),
-        .ex_pc              (ex_pc              ),
-        .ex_inst            (ex_inst            ),
-        .ex_sel_alu_src1    (ex_sel_alu_src1    ),
-        .ex_sel_alu_src2    (ex_sel_alu_src2    ),
-        .ex_rf_rdata1       (ex_rf_rdata1       ),
-        .ex_rf_rdata2       (ex_rf_rdata2       ),
-        .ex_imm_sign_extend (ex_imm_sign_extend ),
-        .ex_sa_zero_extend  (ex_sa_zero_extend  )
+    wire [`RegAddrBus] rs_rf_raddr;
+    wire [`RegAddrBus] rt_rf_raddr;
+    wire rf_we;
+    wire [`RegAddrBus] rf_waddr;
+    wire [`RegBus] rf_wdata;
+    
+    id u_id(
+    	.clk          (clk              ),
+        .rst          (rst              ),
+        .flush        (flush            ),
+        .stall        (stall            ),
+        .br_e         (br_bus[32]       ),
+        .stallreq     (stallreq         ),
+        .ic_to_id_bus (ic_to_id_bus     ),
+        .ic_inst      (ic_inst          ),
+        .wb_rf_we     (rf_we            ),
+        .wb_rf_waddr  (rf_waddr         ),
+        .wb_rf_wdata  (rf_wdata         ),
+        .id_to_ex_bus (id_to_ex_bus     ),
+        .rs_rf_raddr  (rs_rf_raddr      ),
+        .rt_rf_raddr  (rt_rf_raddr      )
+    );
+
+    wire [31:0] rs_forward_data;
+    wire [31:0] rt_forward_data;
+    
+    ex u_ex(
+        .clk             (clk             ),
+        .rst             (rst             ),
+        .flush           (flush           ),
+        .stall           (stall           ),
+        .id_to_ex_bus    (id_to_ex_bus    ),
+        .ex_to_dc_bus    (ex_to_dc_bus    ),
+        .sel_rs_forward  (sel_rs_forward  ),
+        .rs_forward_data (rs_forward_data ),
+        .sel_rt_forward  (sel_rt_forward  ),
+        .rt_forward_data (rt_forward_data ),
+        .br_bus          (br_bus          ),
+        .data_sram_en    (data_sram_en    ),
+        .data_sram_wen   (data_sram_wen   ),
+        .data_sram_addr  (data_sram_addr  ),
+        .data_sram_wdata (data_sram_wdata )
     );
     
 
-    ex u_ex(
-    	.rst             (rst             ),
-        .pc              (pc              ),
-        .inst            (inst            ),
-        .alu_op          (alu_op          ),
-        .sel_alu_src1    (sel_alu_src1    ),
-        .sel_alu_src2    (sel_alu_src2    ),
-        .rf_rdata1       (rf_rdata1       ),
-        .rf_rdata2       (rf_rdata2       ),
-        .imm_sign_extend (imm_sign_extend ),
-        .sa_zero_extend  (sa_zero_extend  ),
-        .sel_rs_forward  (sel_rs_forward  ),
-        .rs_forward_data (rs_forward_data ),
-        .sel_rt_forward  (sel_rt_forward  ),
-        .rt_forward_data (rt_forward_data )
+    dc u_dc(
+    	.clk           (clk           ),
+        .rst           (rst           ),
+        .flush         (flush         ),
+        .stall         (stall         ),
+        .ex_to_dc_bus  (ex_to_dc_bus  ),
+        .dc_to_mem_bus (dc_to_mem_bus )
     );
 
+    mem u_mem(
+    	.clk           (clk           ),
+        .rst           (rst           ),
+        .flush         (flush         ),
+        .stall         (stall         ),
+        .dc_to_mem_bus (dc_to_mem_bus ),
+        .mem_to_wb_bus (mem_to_wb_bus ),
+        .data_sram_rdata(data_sram_rdata)
+    );
+
+    wb u_wb(
+    	.clk               (clk               ),
+        .rst               (rst               ),
+        .flush             (flush             ),
+        .stall             (stall             ),
+        .mem_to_wb_bus     (mem_to_wb_bus     ),
+        .rf_we             (rf_we             ),
+        .rf_waddr          (rf_waddr          ),
+        .rf_wdata          (rf_wdata          ),
+        .debug_wb_pc       (debug_wb_pc       ),
+        .debug_wb_rf_wen   (debug_wb_rf_wen   ),
+        .debug_wb_rf_wnum  (debug_wb_rf_wnum  ),
+        .debug_wb_rf_wdata (debug_wb_rf_wdata )
+    );
+    
+    
     bypass u_bypass(
-    	.rs_rf_raddr     (rs_rf_raddr     ),
-        .rt_rf_raddr     (rt_rf_raddr     ),
-        .ex_we           (ex_we           ),
-        .ex_waddr        (ex_waddr        ),
-        .ex_wdata        (ex_wdata        ),
-        .dcache_we       (dcache_we       ),
-        .dcache_waddr    (dcache_waddr    ),
-        .dcache_wdata    (dcache_wdata    ),
-        .mem_we          (mem_we          ),
-        .mem_waddr       (mem_waddr       ),
-        .mem_wdata       (mem_wdata       ),
-        .sel_rs_forward  (sel_rs_forward  ),
-        .rs_forward_data (rs_forward_data ),
-        .sel_rt_forward  (sel_rt_forward  ),
-        .rt_forward_data (rt_forward_data )
+        .clk             (clk                   ),
+        .rst             (rst                   ),
+        .flush           (flush                 ),
+        .stall           (stall                 ),
+    	.rs_rf_raddr_i   (rs_rf_raddr           ),
+        .rt_rf_raddr_i   (rt_rf_raddr           ),
+        .ex_we_i         (ex_to_dc_bus[37]      ),
+        .ex_waddr_i      (ex_to_dc_bus[36:32]   ),
+        .ex_wdata_i      (ex_to_dc_bus[31:0]    ),
+        .dcache_we_i     (dc_to_mem_bus[37]     ),
+        .dcache_waddr_i  (dc_to_mem_bus[36:32]  ),
+        .dcache_wdata_i  (dc_to_mem_bus[31:0]   ),
+        .mem_we_i        (mem_to_wb_bus[37]     ),
+        .mem_waddr_i     (mem_to_wb_bus[36:32]  ),
+        .mem_wdata_i     (mem_to_wb_bus[31:0]   ),
+        .sel_rs_forward  (sel_rs_forward        ),
+        .rs_forward_data (rs_forward_data       ),
+        .sel_rt_forward  (sel_rt_forward        ),
+        .rt_forward_data (rt_forward_data       )
     );
 
 

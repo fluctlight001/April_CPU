@@ -13,7 +13,7 @@ module regfile(
     reg [31:0] reg_array [31:0];
     // write
     always @ (posedge clk) begin
-        if (we) begin
+        if (we && waddr!=5'b0) begin
             reg_array[waddr] <= wdata;
         end
     end

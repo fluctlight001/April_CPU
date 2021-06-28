@@ -4,19 +4,32 @@ module ic(
     input wire rst,
     input wire [`StallBus] stall,
     input wire flush,
+    input wire br_e,
 
-    input wire [`InstAddrBus] pc_pc,
-    input wire pc_ce,
+    input wire [`PC_TO_IC_WD-1:0] pc_to_ic_bus,
 
-    output reg [`InstAddrBus] icache_pc,
-    output reg icache_ce
+    output wire [`IC_TO_ID_WD-1:0] ic_to_id_bus
 );
+    wire [`InstAddrBus] pc_pc;
+    wire pc_ce;
+    reg [`InstAddrBus] icache_pc;
+    reg icache_ce;
+    assign {
+        pc_ce,
+        pc_pc
+    } = pc_to_ic_bus[33:0];
+    
+    assign ic_to_id_bus = {
+        icache_ce,      // 32
+        icache_pc       // 31:0
+    };
+
     always @ (posedge clk) begin
         if (rst) begin
             icache_pc <= `ZeroWord;
             icache_ce <= 1'b0;
         end
-        else if (flush) begin
+        else if (flush || br_e) begin
             icache_pc <= `ZeroWord;
             icache_ce <= 1'b0;
         end

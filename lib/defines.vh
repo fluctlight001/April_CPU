@@ -161,3 +161,11 @@
 `define DivResultNotReady 1'b0
 `define DivStart 1'b1
 `define DivStop 1'b0
+
+`define PC_TO_IC_WD 65
+`define IC_TO_ID_WD 33
+`define ID_TO_EX_WD 171
+`define EX_TO_DC_WD 76
+`define DC_TO_MEM_WD 76
+`define MEM_TO_WB_WD 70
+`define BR_WD 33

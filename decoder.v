@@ -5,10 +5,12 @@ module decoder (
     input wire [`InstAddrBus] pc_i,
     input wire [`InstBus] inst_i,
 
-    output wire [3:0] sel_nextpc,
-    output wire [2:0] sel_alu_src1, sel_alu_src2,
-    output wire [11:0] alu_op,
     output wire [11:0] br_op,
+    // output wire [31:0] br_target,
+
+    output wire [2:0] sel_alu_src1, 
+    output wire [3:0] sel_alu_src2,
+    output wire [11:0] alu_op,
     output wire data_ram_en, 
     output wire [3:0] data_ram_wen,
     output wire rf_we, // Ð´Ê¹ÄÜ
@@ -30,7 +32,8 @@ module decoder (
     wire [2:0] sel;
 
     wire [63:0] op_d, func_d;
-    wire [31:0] rs_d, rt_d, sa_d;
+    wire [31:0] rs_d, rt_d;
+    // wire [31:0] sa_d;
 
     assign opcode = inst_i[31:26];
     assign rs = inst_i[25:21];
@@ -170,7 +173,8 @@ module decoder (
                            | inst_xori | inst_sllv | inst_srav | inst_srlv
                            | inst_mthi | inst_mtlo 
                            | inst_lb | inst_lbu | inst_lh | inst_lhu 
-                           | inst_lw | inst_sb | inst_sh | inst_sw ; 
+                           | inst_lw | inst_sb | inst_sh | inst_sw 
+                           | inst_beq | inst_jr; 
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal;
     // sa_zero_extend to reg1
@@ -185,9 +189,16 @@ module decoder (
                            | inst_srav | inst_sra | inst_srl | inst_beq 
                            | inst_bne;
     // imm_sign_extend to reg2
-    assign sel_alu_src2[1] = inst_addiu | inst_lw | inst_sw | inst_lui;
+    assign sel_alu_src2[1] = inst_addiu | inst_lw | inst_sw | inst_lui
+                           ;
     // 32'd8 to reg2
     assign sel_alu_src2[2] = inst_jal;
+
+    // imm_zero_extend to reg2
+    assign sel_alu_src2[3] = inst_ori;
+
+    
+
 
     assign op_add = inst_addu | inst_addiu | inst_lw | inst_sw | inst_jal;
     assign op_sub = inst_subu;
@@ -195,7 +206,7 @@ module decoder (
     assign op_sltu = inst_sltu;
     assign op_and = inst_and;
     assign op_nor = inst_nor;
-    assign op_or = inst_or;
+    assign op_or = inst_or | inst_ori;
     assign op_xor = inst_xor;
     assign op_sll = inst_sll;
     assign op_srl = inst_srl;
@@ -207,17 +218,22 @@ module decoder (
                      op_sll, op_srl, op_sra, op_lui};
 
     assign data_ram_en = inst_lw | inst_sw;
-    assign data_ram_wen = inst_sw;
+    wire data_ram_wen_temp;
+    assign data_ram_wen_temp = inst_sw;
+    assign data_ram_wen = {4{data_ram_wen_temp}};
 
     assign rf_we = inst_addu | inst_addiu | inst_subu | inst_lw 
                  | inst_jal | inst_slt | inst_sltu |inst_sll 
                  | inst_srl | inst_sra | inst_lui | inst_and 
-                 | inst_or | inst_xor | inst_nor;
+                 | inst_or | inst_ori | inst_xor | inst_nor;
 
+    // store in [rd]
     assign sel_rf_dst[0] = inst_addu | inst_subu | inst_slt | inst_sltu 
                          | inst_sll | inst_srl | inst_sra | inst_and 
                          | inst_or | inst_xor | inst_nor;
-    assign sel_rf_dst[1] = inst_addiu | inst_lw | inst_lui;
+    // store in [rt] 
+    assign sel_rf_dst[1] = inst_addiu | inst_lw | inst_lui | inst_ori;
+    // store in [31]
     assign sel_rf_dst[2] = inst_jal;
 
     assign rf_waddr = {5{sel_rf_dst[0]}} & rd 
@@ -226,13 +242,30 @@ module decoder (
 
     assign sel_rf_res = inst_lw; // 0 from alu_res ; 1 from ld_res
 
-    assign sel_nextpc[0] = inst_addu | inst_addiu | inst_subu | inst_lw 
-                         | inst_sw | inst_slt | inst_sltu | inst_sll 
-                         | inst_srl | inst_sra | inst_lui | inst_and 
-                         | inst_or | inst_xor | inst_nor;
-    assign sel_nextpc[1] = inst_beq | inst_bne;
-    assign sel_nextpc[2] = inst_jal;
-    assign sel_nextpc[3] = inst_jr;
+    // assign sel_nextpc[0] = inst_addu | inst_addiu | inst_subu | inst_lw 
+    //                      | inst_sw | inst_slt | inst_sltu | inst_sll 
+    //                      | inst_srl | inst_sra | inst_lui | inst_and 
+    //                      | inst_or | inst_xor | inst_nor;
+    // assign sel_nextpc[1] = inst_beq | inst_bne;
+    // assign sel_nextpc[2] = inst_jal;
+    // assign sel_nextpc[3] = inst_jr;
+
+    assign br_op = {
+        inst_beq,
+        inst_bne,
+        inst_bgez,
+        inst_bgtz,
+        inst_blez,
+        inst_bltz,
+        inst_bgezal,
+        inst_bltzal,
+        inst_j,
+        inst_jal,
+        inst_jr,
+        inst_jalr
+    };
+
+    
 
 
 

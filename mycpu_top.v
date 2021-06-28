@@ -1,7 +1,7 @@
-module my_cpu(
+module mycpu_top(
     input wire clk,
-    input wire rst,
-    input wire [5:0] int,
+    input wire resetn,
+    input wire [5:0] ext_int,
 
     output wire inst_sram_en,
     output wire [3:0] inst_sram_wen,
@@ -22,8 +22,8 @@ module my_cpu(
 );
     mycpu_core u_mycpu_core(
         .clk               (clk               ),
-        .rst               (rst               ),
-        .int               (int               ),
+        .rst               (~resetn           ),
+        .int               (ext_int           ),
         .inst_sram_en      (inst_sram_en      ),
         .inst_sram_wen     (inst_sram_wen     ),
         .inst_sram_addr    (inst_sram_addr    ),

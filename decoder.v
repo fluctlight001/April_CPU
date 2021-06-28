@@ -13,9 +13,9 @@ module decoder (
     output wire [11:0] alu_op,
     output wire data_ram_en, 
     output wire [3:0] data_ram_wen,
-    output wire rf_we, // Ğ´Ê¹ÄÜ
-    output wire [`RegAddrBus] rf_waddr, // Ğ´µØÖ·
-    output wire sel_rf_res // Ğ´Êı¾İsel
+    output wire rf_we, // å†™ä½¿èƒ½
+    output wire [`RegAddrBus] rf_waddr, // å†™åœ°å€
+    output wire sel_rf_res // å†™æ•°æ®sel
 
 );
     wire [5:0] opcode;
@@ -48,7 +48,7 @@ module decoder (
     assign offset = inst_i[15:0];
     assign sel = inst_i[2:0];
 
-    wire [2:0] sel_rf_dst; // Ğ´µØÖ·sel
+    wire [2:0] sel_rf_dst; // å†™åœ°å€sel
 
 
     wire inst_add,  inst_addi,  inst_addu,  inst_addiu;

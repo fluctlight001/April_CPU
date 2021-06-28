@@ -1,5 +1,5 @@
-//inside_op ´¦ÀíÆ÷ÄÚ²¿Ö¸ÁîÊ¶±ğ±àÂë
-// arithmetic ËãÊõ
+//inside_op å¤„ç†å™¨å†…éƒ¨æŒ‡ä»¤è¯†åˆ«ç¼–ç 
+// arithmetic ç®—æœ¯
 `define ADD   6'd0
 `define ADDI  6'd1
 `define ADDU  6'd2
@@ -11,15 +11,15 @@
 `define SLTU  6'd8
 `define SLTIU 6'd9
 
-// div ³ı·¨£¨Í¨¹ıhilo¼Ä´æÆ÷Êä³öÊı¾İ£©
+// div é™¤æ³•ï¼ˆé€šè¿‡hiloå¯„å­˜å™¨è¾“å‡ºæ•°æ®ï¼‰
 `define DIV   6'd10
 `define DIVU  6'd11
 
-// mul ³Ë·¨
+// mul ä¹˜æ³•
 `define MULT  6'd12
 `define MULTU 6'd13
 
-// logic Âß¼­
+// logic é€»è¾‘
 `define AND   6'd14
 `define ANDI  6'd15
 `define LUI   6'd16
@@ -29,7 +29,7 @@
 `define XOR   6'd20
 `define XORI  6'd21
 
-// shift ÒÆÎ»
+// shift ç§»ä½
 `define SLLV  6'd22
 `define SLL   6'd23
 `define SRAV  6'd24
@@ -37,7 +37,7 @@
 `define SRLV  6'd26
 `define SRL   6'd27
 
-// branch & jump ·ÖÖ§Ìø×ª
+// branch & jump åˆ†æ”¯è·³è½¬
 `define BEQ   6'd28
 `define BNE   6'd29
 `define BGEZ  6'd30
@@ -51,17 +51,17 @@
 `define JR    6'd38
 `define JALR  6'd39
 
-// move Êı¾İÒÆ¶¯
+// move æ•°æ®ç§»åŠ¨
 `define MFHI  6'd40
 `define MFLO  6'd41
 `define MTHI  6'd42
 `define MTLO  6'd43
 
-// ×ÔÏİÖ¸Áî
+// è‡ªé™·æŒ‡ä»¤
 `define BREAK 6'd44
 `define SYSCALL 6'd45
 
-// load & store ·Ã´æ
+// load & store è®¿å­˜
 `define LB    6'd46
 `define LBU   6'd47
 `define LH    6'd48
@@ -71,12 +71,12 @@
 `define SH    6'd52
 `define SW    6'd53
 
-// special ÌØÈ¨
+// special ç‰¹æƒ
 `define ERET  6'd54
 `define MFC0  6'd55
 `define MTC0  6'd56
 
-// NOP ¿ÕÖ¸Áî
+// NOP ç©ºæŒ‡ä»¤
 `define NOP 6'd57
 // MUL
 `define MUL 6'd58
@@ -99,7 +99,7 @@
 
 
 
-// È«¾Ö
+// å…¨å±€
 `define RstEnable 1'b1
 `define RstDisable 1'b0
 `define ZeroWord 32'h00000000
@@ -129,20 +129,20 @@
 `define UnCache 1'b0
 `define StallBus 8:0
 
-//Ö¸Áî´æ´¢Æ÷inst_rom
+//æŒ‡ä»¤å­˜å‚¨å™¨inst_rom
 `define InstAddrBus 31:0
 `define InstBus 31:0
 `define InstMemNum 131071
 `define InstMemNumLog2 17
 
-//Êı¾İ´æ´¢Æ÷data_ram
+//æ•°æ®å­˜å‚¨å™¨data_ram
 `define DataAddrBus 31:0
 `define DataBus 31:0
 `define DataMemNum 131071
 `define DataMemNumLog2 17
 `define ByteWidth 7:0
 
-//Í¨ÓÃ¼Ä´æÆ÷regfile
+//é€šç”¨å¯„å­˜å™¨regfile
 `define RegAddrBus 4:0
 `define RegBus 31:0
 `define RegWidth 32
@@ -152,7 +152,7 @@
 `define RegNumLog2 5
 `define NOPRegAddr 5'b00000
 
-//³ı·¨div
+//é™¤æ³•div
 `define DivFree 2'b00
 `define DivByZero 2'b01
 `define DivOn 2'b10

@@ -39,7 +39,6 @@ module ctrl (
             flush <= `False_v;
             new_pc <= `ZeroWord;
         end
-
     end
     
 endmodule

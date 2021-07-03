@@ -154,25 +154,25 @@ module mycpu_core(
     
     
     bypass u_bypass(
-        .clk             (clk                   ),
-        .rst             (rst                   ),
-        .flush           (flush                 ),
-        .stall           (stall                 ),
-    	.rs_rf_raddr_i   (rs_rf_raddr           ),
-        .rt_rf_raddr_i   (rt_rf_raddr           ),
-        .ex_we_i         (ex_to_dc_bus[37]      ),
-        .ex_waddr_i      (ex_to_dc_bus[36:32]   ),
-        .ex_wdata_i      (ex_to_dc_bus[31:0]    ),
-        .dcache_we_i     (dc_to_mem_bus[37]     ),
-        .dcache_waddr_i  (dc_to_mem_bus[36:32]  ),
-        .dcache_wdata_i  (dc_to_mem_bus[31:0]   ),
-        .mem_we_i        (mem_to_wb_bus[37]     ),
-        .mem_waddr_i     (mem_to_wb_bus[36:32]  ),
-        .mem_wdata_i     (mem_to_wb_bus[31:0]   ),
-        .sel_rs_forward  (sel_rs_forward        ),
-        .rs_forward_data (rs_forward_data       ),
-        .sel_rt_forward  (sel_rt_forward        ),
-        .rt_forward_data (rt_forward_data       )
+        .clk               (clk                   ),
+        .rst               (rst                   ),
+        .flush             (flush                 ),
+        .stall             (stall                 ),
+    	.rs_rf_raddr       (rs_rf_raddr           ),
+        .rt_rf_raddr       (rt_rf_raddr           ),
+        .ex_we             (ex_to_dc_bus[37]      ),
+        .ex_waddr          (ex_to_dc_bus[36:32]   ),
+        .ex_wdata          (ex_to_dc_bus[31:0]    ),
+        .dcache_we         (dc_to_mem_bus[37]     ),
+        .dcache_waddr      (dc_to_mem_bus[36:32]  ),
+        .dcache_wdata      (dc_to_mem_bus[31:0]   ),
+        .mem_we            (mem_to_wb_bus[37]     ),
+        .mem_waddr         (mem_to_wb_bus[36:32]  ),
+        .mem_wdata         (mem_to_wb_bus[31:0]   ),
+        .sel_rs_forward_r  (sel_rs_forward        ),
+        .rs_forward_data_r (rs_forward_data       ),
+        .sel_rt_forward_r  (sel_rt_forward        ),
+        .rt_forward_data_r (rt_forward_data       )
     );
 
 

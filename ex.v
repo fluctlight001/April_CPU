@@ -147,23 +147,31 @@ module ex (
     assign rf_rdata1_bp = sel_rs_forward ? rs_forward_data : rf_rdata1; 
     assign rf_rdata2_bp = sel_rt_forward ? rt_forward_data : rf_rdata2;
     
-    mux3_32b u_ALUSrc1(
-    	.in0 (rf_rdata1_bp      ),
-        .in1 (pc                ),
-        .in2 (sa_zero_extend    ),
-        .sel (sel_alu_src1      ),
-        .out (alu_src1          )
-    );
+    // mux3_32b u_ALUSrc1(
+    // 	.in0 (rf_rdata1_bp      ),
+    //     .in1 (pc                ),
+    //     .in2 (sa_zero_extend    ),
+    //     .sel (sel_alu_src1      ),
+    //     .out (alu_src1          )
+    // );
 
-    mux4_32b u_ALUSrc2(
-    	.in0 (rf_rdata2_bp      ),
-        .in1 (imm_sign_extend   ),
-        .in2 (32'd8             ),
-        .in3 (imm_zero_extend   ),
-        .sel (sel_alu_src2      ),
-        .out (alu_src2          )
-    );
-    
+
+    // mux4_32b u_ALUSrc2(
+    // 	.in0 (rf_rdata2_bp      ),
+    //     .in1 (imm_sign_extend   ),
+    //     .in2 (32'd8             ),
+    //     .in3 (imm_zero_extend   ),
+    //     .sel (sel_alu_src2      ),
+    //     .out (alu_src2          )
+    // );
+    assign alu_src1 = sel_alu_src1[1] ? pc :
+                      sel_alu_src1[2] ? sa_zero_extend :
+                      sel_rs_forward ? rs_forward_data : rf_rdata1;
+
+    assign alu_src2 = sel_alu_src2[1] ? imm_sign_extend :
+                      sel_alu_src2[2] ? 32'd8 :
+                      sel_alu_src2[3] ? imm_zero_extend :
+                      sel_rt_forward ? rt_forward_data : rf_rdata2;
     alu u_alu(
     	.alu_control (alu_op        ),
         .alu_src1    (alu_src1      ),
@@ -221,22 +229,10 @@ module ex (
         branch_e,   // 32
         br_target   // 31:0
     };
-    wire [3:0] alu_result_head;
-    assign alu_result_head = alu_result[31:28];
-    wire [3:0] mem_addr_head;
-    wire kseg0_l,kseg0_h,kseg1_l,kseg1_h;
-    assign kseg0_l = alu_result_head == 4'b1000;
-    assign kseg0_h = alu_result_head == 4'b1001;
-    assign kseg1_l = alu_result_head == 4'b1010;
-    assign kseg1_h = alu_result_head == 4'b1011;
-    wire other_seg;
-    assign other_seg = ~kseg0_l & ~kseg0_h & ~kseg1_l & ~kseg1_h;
-    assign mem_addr_head = {4{kseg0_l}}&4'b0000 | {4{kseg0_h}}&4'b0001 | {4{kseg1_l}}&4'b0000 | {4{kseg1_h}}&4'b0001 | {4{other_seg}}&alu_result_head;
-
-
+    
     assign data_sram_en = data_ram_en;
     assign data_sram_wen = data_ram_wen;
-    assign data_sram_addr = {mem_addr_head, alu_result[27:0]};
+    assign data_sram_addr = alu_result; 
     assign data_sram_wdata = rf_rdata2_bp;
 
 

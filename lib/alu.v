@@ -62,7 +62,7 @@ module alu(
     assign sltu_result[0] = ~adder_cout;
 
     assign sll_result = alu_src2 << alu_src1[4:0];
-    assign sra_result = alu_src2 >> alu_src1[4:0];
+    assign srl_result = alu_src2 >> alu_src1[4:0];
     assign sra_result = ($signed(alu_src2)) >>> alu_src1[4:0];
 
     assign alu_result = ({32{op_add|op_sub  }} & add_sub_result)

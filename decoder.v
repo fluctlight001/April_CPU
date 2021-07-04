@@ -173,10 +173,9 @@ module decoder (
                            | inst_xori | inst_sllv | inst_srav | inst_srlv
                            | inst_mthi | inst_mtlo 
                            | inst_lb | inst_lbu | inst_lh | inst_lhu 
-                           | inst_lw | inst_sb | inst_sh | inst_sw 
-                           | inst_beq | inst_bne | inst_bgez | inst_blez | inst_bltz | inst_jr; 
+                           | inst_lw | inst_sb | inst_sh | inst_sw; 
     // pc to reg1
-    assign sel_alu_src1[1] = inst_jal;
+    assign sel_alu_src1[1] = inst_jal | inst_bltzal | inst_bgezal | inst_jalr;
     // sa_zero_extend to reg1
     assign sel_alu_src1[2] = inst_sll | inst_sra | inst_srl;
                            
@@ -186,13 +185,12 @@ module decoder (
                            | inst_slt | inst_sltu | inst_div | inst_divu 
                            | inst_mult | inst_multu | inst_and | inst_nor 
                            | inst_or | inst_xor | inst_sllv | inst_sll 
-                           | inst_srav | inst_sra | inst_srlv | inst_srl | inst_beq 
-                           | inst_bne;
+                           | inst_srav | inst_sra | inst_srlv | inst_srl;
     // imm_sign_extend to reg2
     assign sel_alu_src2[1] = inst_addi | inst_addiu | inst_lw | inst_sw | inst_lui
                            | inst_slti | inst_sltiu ;
     // 32'd8 to reg2
-    assign sel_alu_src2[2] = inst_jal;
+    assign sel_alu_src2[2] = inst_jal | inst_bltzal | inst_bgezal | inst_jalr;
 
     // imm_zero_extend to reg2
     assign sel_alu_src2[3] = inst_ori | inst_andi | inst_xori;
@@ -200,7 +198,7 @@ module decoder (
     
 
 
-    assign op_add = inst_add | inst_addu | inst_addi | inst_addiu | inst_lw | inst_sw | inst_jal;
+    assign op_add = inst_add | inst_addu | inst_addi | inst_addiu | inst_lw | inst_sw | inst_jal | inst_bltzal | inst_bgezal | inst_jalr;
     assign op_sub = inst_sub | inst_subu;
     assign op_slt = inst_slt | inst_slti;
     assign op_sltu = inst_sltu | inst_sltiu;
@@ -224,7 +222,7 @@ module decoder (
 
     // store enable
     assign rf_we = inst_add | inst_addu | inst_addi | inst_addiu | inst_sub | inst_subu | inst_lw 
-                 | inst_jal | inst_slt | inst_slti | inst_sltu | inst_sltiu | inst_sllv | inst_sll 
+                 | inst_jal | inst_bltzal | inst_bgezal | inst_jalr | inst_slt | inst_slti | inst_sltu | inst_sltiu | inst_sllv | inst_sll 
                  | inst_srlv | inst_srl | inst_srav | inst_sra | inst_lui | inst_and | inst_andi
                  | inst_or | inst_ori | inst_xor | inst_xori | inst_nor;
 
@@ -235,7 +233,7 @@ module decoder (
     // store in [rt] 
     assign sel_rf_dst[1] = inst_addi | inst_addiu | inst_lw | inst_lui | inst_ori | inst_andi | inst_xori | inst_slti | inst_sltiu;
     // store in [31]
-    assign sel_rf_dst[2] = inst_jal;
+    assign sel_rf_dst[2] = inst_jal | inst_bltzal | inst_bgezal | inst_jalr;
 
     assign rf_waddr = {5{sel_rf_dst[0]}} & rd 
                     | {5{sel_rf_dst[1]}} & rt

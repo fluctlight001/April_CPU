@@ -219,31 +219,37 @@ module ex (
     wire [31:0] pc_plus_4;
     assign pc_plus_4 = pc_i; //pc + 32'h4;
 
-    assign rs_eq_rt = (alu_src1 == alu_src2);
-    assign rs_ge_z = ~alu_src1[31];
-    assign rs_gt_z = ($signed(alu_src1) > 0);
-    assign rs_le_z = (alu_src1[31]==1'b1 || alu_src1 == 32'b0);
-    assign rs_lt_z = (alu_src1);
+    assign rs_eq_rt = (rf_rdata1_bp == rf_rdata2_bp);
+    assign rs_ge_z = ~rf_rdata1_bp[31];
+    assign rs_gt_z = ($signed(rf_rdata1_bp) > 0);
+    assign rs_le_z = (rf_rdata1_bp[31]==1'b1 || rf_rdata1_bp == 32'b0);
+    assign rs_lt_z = (rf_rdata1_bp[31]);
 
     assign branch_e = inst_beq & rs_eq_rt
                     | inst_bne & ~rs_eq_rt
                     | inst_bgez & rs_ge_z
+                    | inst_bgezal & rs_ge_z
                     | inst_bgtz & rs_gt_z
                     | inst_blez & rs_le_z
                     | inst_bltz & rs_lt_z
+                    | inst_bltzal & rs_lt_z
                     | inst_j
                     | inst_jal
-                    | inst_jr;
+                    | inst_jr
+                    | inst_jalr;
 
     assign br_target = (inst_beq)   ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
                        (inst_bne)   ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
                        (inst_bgez)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_bgezal)? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
                        (inst_bgtz)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
                        (inst_blez)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
                        (inst_bltz)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_bltzal)? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
                        (inst_j)     ? {pc_plus_4[31:28],inst[25:0],2'b0} :
                        (inst_jal)   ? {pc_plus_4[31:28],inst[25:0],2'b0} : 
-                       (inst_jr)    ? rf_rdata1_bp : 32'b0;
+                       (inst_jr)    ? rf_rdata1_bp :
+                       (inst_jalr)  ? rf_rdata1_bp : 32'b0;
 
     assign br_bus = {
         branch_e,   // 32

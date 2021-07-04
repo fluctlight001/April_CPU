@@ -29,3 +29,7 @@
 
 ### 2021-7-3
 1. 修改旁路，频率达到100Mhz
+
+### 2021-7-4
+1. 添加访存暂停，防止提前使用还未取回的数据
+2. 添加J BNE ADD SLTI SLTIU ADDI SUB ANDI XORI SLLV SRAV SRLV BGEZ

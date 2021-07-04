@@ -174,7 +174,7 @@ module decoder (
                            | inst_mthi | inst_mtlo 
                            | inst_lb | inst_lbu | inst_lh | inst_lhu 
                            | inst_lw | inst_sb | inst_sh | inst_sw 
-                           | inst_beq | inst_jr; 
+                           | inst_beq | inst_bne | inst_bgez | inst_jr; 
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal;
     // sa_zero_extend to reg1
@@ -186,31 +186,31 @@ module decoder (
                            | inst_slt | inst_sltu | inst_div | inst_divu 
                            | inst_mult | inst_multu | inst_and | inst_nor 
                            | inst_or | inst_xor | inst_sllv | inst_sll 
-                           | inst_srav | inst_sra | inst_srl | inst_beq 
+                           | inst_srav | inst_sra | inst_srlv | inst_srl | inst_beq 
                            | inst_bne;
     // imm_sign_extend to reg2
-    assign sel_alu_src2[1] = inst_addiu | inst_lw | inst_sw | inst_lui
-                           ;
+    assign sel_alu_src2[1] = inst_addi | inst_addiu | inst_lw | inst_sw | inst_lui
+                           | inst_slti | inst_sltiu ;
     // 32'd8 to reg2
     assign sel_alu_src2[2] = inst_jal;
 
     // imm_zero_extend to reg2
-    assign sel_alu_src2[3] = inst_ori;
+    assign sel_alu_src2[3] = inst_ori | inst_andi | inst_xori;
 
     
 
 
-    assign op_add = inst_addu | inst_addiu | inst_lw | inst_sw | inst_jal;
-    assign op_sub = inst_subu;
-    assign op_slt = inst_slt;
-    assign op_sltu = inst_sltu;
-    assign op_and = inst_and;
+    assign op_add = inst_add | inst_addu | inst_addi | inst_addiu | inst_lw | inst_sw | inst_jal;
+    assign op_sub = inst_sub | inst_subu;
+    assign op_slt = inst_slt | inst_slti;
+    assign op_sltu = inst_sltu | inst_sltiu;
+    assign op_and = inst_and | inst_andi;
     assign op_nor = inst_nor;
     assign op_or = inst_or | inst_ori;
-    assign op_xor = inst_xor;
-    assign op_sll = inst_sll;
-    assign op_srl = inst_srl;
-    assign op_sra = inst_sra;
+    assign op_xor = inst_xor | inst_xori;
+    assign op_sll = inst_sllv | inst_sll;
+    assign op_srl = inst_srlv | inst_srl;
+    assign op_sra = inst_srav | inst_sra;
     assign op_lui = inst_lui;
 
     assign alu_op = {op_add, op_sub, op_slt, op_sltu,
@@ -222,17 +222,18 @@ module decoder (
     assign data_ram_wen_temp = inst_sw;
     assign data_ram_wen = {4{data_ram_wen_temp}};
 
-    assign rf_we = inst_addu | inst_addiu | inst_subu | inst_lw 
-                 | inst_jal | inst_slt | inst_sltu |inst_sll 
-                 | inst_srl | inst_sra | inst_lui | inst_and 
-                 | inst_or | inst_ori | inst_xor | inst_nor;
+    // store enable
+    assign rf_we = inst_add | inst_addu | inst_addi | inst_addiu | inst_sub | inst_subu | inst_lw 
+                 | inst_jal | inst_slt | inst_slti | inst_sltu | inst_sltiu | inst_sllv | inst_sll 
+                 | inst_srlv | inst_srl | inst_srav | inst_sra | inst_lui | inst_and | inst_andi
+                 | inst_or | inst_ori | inst_xor | inst_xori | inst_nor;
 
     // store in [rd]
-    assign sel_rf_dst[0] = inst_addu | inst_subu | inst_slt | inst_sltu 
-                         | inst_sll | inst_srl | inst_sra | inst_and 
+    assign sel_rf_dst[0] = inst_add | inst_addu | inst_sub | inst_subu | inst_slt | inst_sltu 
+                         | inst_sllv | inst_sll | inst_srlv | inst_srl | inst_srav | inst_sra | inst_and 
                          | inst_or | inst_xor | inst_nor;
     // store in [rt] 
-    assign sel_rf_dst[1] = inst_addiu | inst_lw | inst_lui | inst_ori;
+    assign sel_rf_dst[1] = inst_addi | inst_addiu | inst_lw | inst_lui | inst_ori | inst_andi | inst_xori | inst_slti | inst_sltiu;
     // store in [31]
     assign sel_rf_dst[2] = inst_jal;
 

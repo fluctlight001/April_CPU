@@ -212,18 +212,26 @@ module ex (
     wire branch_e;
     wire [`RegBus] br_target;
     wire rs_eq_rt;
+    wire rs_ge_z;
     wire [31:0] pc_plus_4;
     assign pc_plus_4 = pc_i; //pc + 32'h4;
 
     assign rs_eq_rt = (alu_src1 == alu_src2);
+    assign rs_ge_z = ~alu_src1[31];
 
     assign branch_e = inst_beq & rs_eq_rt
+                    | inst_bne & ~rs_eq_rt
+                    | inst_bgez & rs_ge_z
+                    | inst_j
                     | inst_jal
                     | inst_jr;
 
-    assign br_target = (inst_beq) ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
-                       (inst_jal) ? {pc_plus_4[31:28],inst[25:0],2'b0} : 
-                       (inst_jr) ? rf_rdata1_bp : 32'b0;
+    assign br_target = (inst_beq)   ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_bne)   ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_bgez)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_j)     ? {pc_plus_4[31:28],inst[25:0],2'b0} :
+                       (inst_jal)   ? {pc_plus_4[31:28],inst[25:0],2'b0} : 
+                       (inst_jr)    ? rf_rdata1_bp : 32'b0;
 
     assign br_bus = {
         branch_e,   // 32

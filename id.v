@@ -57,23 +57,37 @@ module id (
         rf_rdata1,      // 63:32
         rf_rdata2       // 31:0
     };
-
+    reg flag;
+    reg [`InstAddrBus] inst;
     always @ (posedge clk) begin
         if (rst) begin
             id_pc <= `ZeroWord;
             id_inst <= `ZeroWord;
+            flag <= 1'b0;
         end
         else if (flush || br_e) begin
             id_pc <= `ZeroWord;
             id_inst <= `ZeroWord;
+            flag <= 1'b0;
         end
         else if (stall[2] == `Stop && stall[3] == `NoStop) begin
             id_pc <= `ZeroWord;
             id_inst <= `ZeroWord;
+            flag <= 1'b0;
         end 
-        else if (stall[2] == `NoStop) begin
+        else if (stall[2] == `NoStop&&flag) begin
+            id_pc <= ic_pc;
+            id_inst <= inst;
+            flag <= 1'b0;
+        end
+        else if (stall[2]==`NoStop&&~flag) begin
             id_pc <= ic_pc;
             id_inst <= ic_inst;
+            flag <= 1'b0;
+        end
+        else if (~flag) begin
+            inst <= ic_inst;
+            flag <= 1'b1;
         end
     end
 

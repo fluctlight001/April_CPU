@@ -39,6 +39,7 @@ module mem(
     reg [3:0] data_ram_wen;
     reg [31:0] alu_result;
     wire [31:0] mem_result;
+    reg [31:0] data_sram_rdata_r;
     
     always @ (posedge clk) begin
         if (rst) begin
@@ -49,6 +50,7 @@ module mem(
             data_ram_en <= 1'b0;
             data_ram_wen <= 4'b0;
             alu_result <= 32'b0;
+            data_sram_rdata_r <= 32'b0;
         end
         else if (flush) begin
             pc <= 32'b0;
@@ -58,6 +60,7 @@ module mem(
             data_ram_en <= 1'b0;
             data_ram_wen <= 4'b0;
             alu_result <= 32'b0;
+            data_sram_rdata_r <= 32'b0;
         end
         else if (stall[5] == `Stop && stall[6] == `NoStop) begin
             pc <= 32'b0;
@@ -67,6 +70,7 @@ module mem(
             data_ram_en <= 1'b0;
             data_ram_wen <= 4'b0;
             alu_result <= 32'b0;
+            data_sram_rdata_r <= 32'b0;
         end
         else if (stall[5] == `NoStop) begin
             pc <= pc_i;
@@ -76,9 +80,10 @@ module mem(
             data_ram_en <= data_ram_en_i;
             data_ram_wen <= data_ram_wen_i;
             alu_result <= alu_result_i;
+            data_sram_rdata_r <= data_sram_rdata;
         end
     end
-    assign mem_result = data_sram_rdata;
+    assign mem_result = data_sram_rdata_r;
     assign rf_wdata = sel_rf_res ? mem_result : alu_result;
     assign mem_to_wb_bus = {
         pc,         // 69:68

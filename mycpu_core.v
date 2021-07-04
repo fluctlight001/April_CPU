@@ -152,20 +152,24 @@ module mycpu_core(
         .debug_wb_rf_wdata (debug_wb_rf_wdata )
     );
     
-    
+    wire stallreq_for_load;
     bypass u_bypass(
         .clk               (clk                   ),
         .rst               (rst                   ),
         .flush             (flush                 ),
         .stall             (stall                 ),
+        .stallreq_for_load (stallreq_for_load     ),
+
     	.rs_rf_raddr       (rs_rf_raddr           ),
         .rt_rf_raddr       (rt_rf_raddr           ),
         .ex_we             (ex_to_dc_bus[37]      ),
         .ex_waddr          (ex_to_dc_bus[36:32]   ),
         .ex_wdata          (ex_to_dc_bus[31:0]    ),
+        .ex_ram_ctrl       (ex_to_dc_bus[43:39]   ),
         .dcache_we         (dc_to_mem_bus[37]     ),
         .dcache_waddr      (dc_to_mem_bus[36:32]  ),
         .dcache_wdata      (dc_to_mem_bus[31:0]   ),
+        .dc_ram_ctrl       (dc_to_mem_bus[43:39]  ),
         .mem_we            (mem_to_wb_bus[37]     ),
         .mem_waddr         (mem_to_wb_bus[36:32]  ),
         .mem_wdata         (mem_to_wb_bus[31:0]   ),
@@ -182,6 +186,7 @@ module mycpu_core(
         .stallreq_from_id (stallreq_from_id ),
         .stallreq_from_ex (stallreq_from_ex ),
         .stallreq_from_dc (stallreq_from_dc ),
+        .stallreq_for_load(stallreq_for_load),
         .excepttype_i     (excepttype_i     ),
         .cp0_epc_i        (cp0_epc_i        ),
         .flush            (flush            ),

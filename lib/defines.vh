@@ -127,7 +127,7 @@
 `define ChipDisable 1'b0
 `define Cache 1'b1
 `define UnCache 1'b0
-`define StallBus 8:0
+`define StallBus 7:0
 
 //指令存储器inst_rom
 `define InstAddrBus 31:0

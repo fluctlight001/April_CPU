@@ -47,7 +47,7 @@ module pc (
         if (rst) begin
             pc <= 32'hbfbf_fffc;
         end
-        else begin
+        else if (stall[0]==`NoStop) begin
             pc <= next_pc;
         end
     end
@@ -56,7 +56,7 @@ module pc (
         if (rst) begin
             ce <= 1'b0;
         end
-        else begin
+        else if (stall[0]==`NoStop) begin
             ce <= 1'b1;
         end
     end

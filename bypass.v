@@ -4,6 +4,7 @@ module bypass(
     input wire rst,
     input wire flush,
     input wire [`StallBus] stall,
+    output wire stallreq_for_load,
 
     input wire [`RegAddrBus] rs_rf_raddr,
     input wire [`RegAddrBus] rt_rf_raddr,
@@ -11,10 +12,13 @@ module bypass(
     input wire ex_we,
     input wire [`RegAddrBus] ex_waddr,
     input wire [`RegBus] ex_wdata,
+    input wire [4:0] ex_ram_ctrl,
 
     input wire dcache_we,
     input wire [`RegAddrBus] dcache_waddr,
     input wire [`RegBus] dcache_wdata,
+    input wire [4:0] dc_ram_ctrl,
+
 
     input wire mem_we,
     input wire [`RegAddrBus] mem_waddr,
@@ -64,6 +68,8 @@ module bypass(
     wire rt_ex_ok,rt_dcache_ok,rt_mem_ok;
     wire sel_rs_forward, sel_rt_forward;
     wire [`RegBus] rs_forward_data, rt_forward_data;
+    wire ex_is_load,dc_is_load;
+    wire stallreq_for_load_next;
 
     assign rs_ex_ok     = (rs_rf_raddr == ex_waddr) && ex_we ? 1'b1 : 1'b0;
     assign rs_dcache_ok = (rs_rf_raddr == dcache_waddr) && dcache_we ? 1'b1 : 1'b0;
@@ -84,18 +90,26 @@ module bypass(
                            : rt_dcache_ok ? dcache_wdata
                            : rt_mem_ok ? mem_wdata
                            : 32'b0;
+
+    assign ex_is_load = ex_ram_ctrl[4] & ~(|ex_ram_ctrl[3:0]);
+    assign dc_is_load = dc_ram_ctrl[4] & ~(|dc_ram_ctrl[3:0]);
+
+    assign stallreq_for_load_next = (ex_is_load & (rs_ex_ok|rt_ex_ok)) | (dc_is_load & (rs_dcache_ok|rt_dcache_ok));
+    assign stallreq_for_load = stallreq_for_load_next;
     always @ (posedge clk) begin
         if (rst) begin
             sel_rs_forward_r <= 1'b0;
             sel_rt_forward_r <= 1'b0;
             rs_forward_data_r <= 32'b0;
             rt_forward_data_r <= 32'b0;
+            // stallreq_for_load <= 1'b0;
         end
         else begin
             sel_rs_forward_r <= sel_rs_forward;
             sel_rt_forward_r <= sel_rt_forward;
             rs_forward_data_r <= rs_forward_data;
             rt_forward_data_r <= rt_forward_data;
+            // stallreq_for_load <= stallreq_for_load_next;
         end
     end
 endmodule

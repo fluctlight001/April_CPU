@@ -174,7 +174,7 @@ module decoder (
                            | inst_mthi | inst_mtlo 
                            | inst_lb | inst_lbu | inst_lh | inst_lhu 
                            | inst_lw | inst_sb | inst_sh | inst_sw 
-                           | inst_beq | inst_bne | inst_bgez | inst_jr; 
+                           | inst_beq | inst_bne | inst_bgez | inst_blez | inst_bltz | inst_jr; 
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal;
     // sa_zero_extend to reg1

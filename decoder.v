@@ -6,11 +6,11 @@ module decoder (
     input wire [`InstBus] inst_i,
 
     output wire [11:0] br_op,
-    // output wire [31:0] br_target,
+    output wire [7:0] hilo_op,
 
     output wire [2:0] sel_alu_src1, 
     output wire [3:0] sel_alu_src2,
-    output wire [11:0] alu_op,
+    output wire [12:0] alu_op,
     output wire data_ram_en, 
     output wire [3:0] data_ram_wen,
     output wire rf_we, // 写使能
@@ -71,6 +71,7 @@ module decoder (
     wire op_add, op_sub, op_slt, op_sltu;
     wire op_and, op_nor, op_or, op_xor;
     wire op_sll, op_srl, op_sra, op_lui;
+    wire op_hilo;
 
     decoder_6_64 u0_decoder_6_64(
     	.in  (opcode),
@@ -210,8 +211,10 @@ module decoder (
     assign op_srl = inst_srlv | inst_srl;
     assign op_sra = inst_srav | inst_sra;
     assign op_lui = inst_lui;
+    assign op_hilo = inst_mfhi | inst_mflo;
 
-    assign alu_op = {op_add, op_sub, op_slt, op_sltu,
+    assign alu_op = {op_hilo,
+                     op_add, op_sub, op_slt, op_sltu,
                      op_and, op_nor, op_or, op_xor,
                      op_sll, op_srl, op_sra, op_lui};
 
@@ -224,12 +227,12 @@ module decoder (
     assign rf_we = inst_add | inst_addu | inst_addi | inst_addiu | inst_sub | inst_subu | inst_lw 
                  | inst_jal | inst_bltzal | inst_bgezal | inst_jalr | inst_slt | inst_slti | inst_sltu | inst_sltiu | inst_sllv | inst_sll 
                  | inst_srlv | inst_srl | inst_srav | inst_sra | inst_lui | inst_and | inst_andi
-                 | inst_or | inst_ori | inst_xor | inst_xori | inst_nor;
+                 | inst_or | inst_ori | inst_xor | inst_xori | inst_nor | inst_mfhi | inst_mflo;
 
     // store in [rd]
     assign sel_rf_dst[0] = inst_add | inst_addu | inst_sub | inst_subu | inst_slt | inst_sltu 
                          | inst_sllv | inst_sll | inst_srlv | inst_srl | inst_srav | inst_sra | inst_and 
-                         | inst_or | inst_xor | inst_nor;
+                         | inst_or | inst_xor | inst_nor | inst_mfhi | inst_mflo;
     // store in [rt] 
     assign sel_rf_dst[1] = inst_addi | inst_addiu | inst_lw | inst_lui | inst_ori | inst_andi | inst_xori | inst_slti | inst_sltiu;
     // store in [31]
@@ -264,6 +267,11 @@ module decoder (
         inst_jalr
     };
 
+    // hilo part
+    assign hilo_op = {
+        inst_mfhi, inst_mflo, inst_mthi, inst_mtlo,
+        inst_mult, inst_multu, inst_div, inst_divu
+    };
     
 
 

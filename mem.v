@@ -12,6 +12,7 @@ module mem(
     input wire [31:0] data_sram_rdata
 );
 
+    wire [65:0] hilo_bus_i;
     wire [31:0] pc_i;
     wire sel_rf_res_i;
     wire rf_we_i;
@@ -21,6 +22,7 @@ module mem(
     wire [31:0] alu_result_i;
     
     assign {
+        hilo_bus_i,     // 141:76
         pc_i,           // 75:44        
         data_ram_en_i,  // 43
         data_ram_wen_i, // 42:39
@@ -30,6 +32,7 @@ module mem(
         alu_result_i    // 31:0
     } = dc_to_mem_bus;
 
+    reg [65:0] hilo_bus;
     reg [31:0] pc;
     reg sel_rf_res;
     reg rf_we;
@@ -43,6 +46,7 @@ module mem(
     
     always @ (posedge clk) begin
         if (rst) begin
+            hilo_bus <= 66'b0;
             pc <= 32'b0;
             sel_rf_res <= 1'b0;
             rf_we <= 1'b0;
@@ -53,6 +57,7 @@ module mem(
             data_sram_rdata_r <= 32'b0;
         end
         else if (flush) begin
+            hilo_bus <= 66'b0;
             pc <= 32'b0;
             sel_rf_res <= 1'b0;
             rf_we <= 1'b0;
@@ -63,6 +68,7 @@ module mem(
             data_sram_rdata_r <= 32'b0;
         end
         else if (stall[5] == `Stop && stall[6] == `NoStop) begin
+            hilo_bus <= 66'b0;
             pc <= 32'b0;
             sel_rf_res <= 1'b0;
             rf_we <= 1'b0;
@@ -73,6 +79,7 @@ module mem(
             data_sram_rdata_r <= 32'b0;
         end
         else if (stall[5] == `NoStop) begin
+            hilo_bus <= hilo_bus_i;
             pc <= pc_i;
             sel_rf_res <= sel_rf_res_i;
             rf_we <= rf_we_i;
@@ -86,6 +93,7 @@ module mem(
     assign mem_result = data_sram_rdata_r;
     assign rf_wdata = sel_rf_res ? mem_result : alu_result;
     assign mem_to_wb_bus = {
+        hilo_bus,   // 135:70
         pc,         // 69:68
         rf_we,      // 37
         rf_waddr,   // 36:32

@@ -11,6 +11,8 @@ module wb(
     output reg [`RegAddrBus] rf_waddr,
     output reg [`RegBus] rf_wdata,
 
+    output reg [65:0] hilo_bus,
+
     output wire [31:0] debug_wb_pc,
     output wire [3:0] debug_wb_rf_wen,
     output wire [`RegAddrBus] debug_wb_rf_wnum,
@@ -29,13 +31,14 @@ module wb(
 //     output reg [`InstAddrBus] wb_pc
 
 );
-
+    wire [65:0] hilo_bus_i;
     wire [31:0] pc_i;
     wire rf_we_i;
     wire [`RegAddrBus] rf_waddr_i;
     wire [`RegBus] rf_wdata_i;
 
     assign {
+        hilo_bus_i,
         pc_i,
         rf_we_i,
         rf_waddr_i,
@@ -53,36 +56,28 @@ module wb(
             rf_we <= 1'b0;
             rf_waddr <= `NOPRegAddr;
             rf_wdata <= `ZeroWord;
-            // wb_hi <= `ZeroWord;
-            // wb_lo <= `ZeroWord;
-            // wb_whilo <= 1'b0;
+            hilo_bus <= 66'b0;
         end
         else if (flush) begin
             pc <= `ZeroWord;
             rf_we <= 1'b0;
             rf_waddr <= `NOPRegAddr;
             rf_wdata <= `ZeroWord;
-            // wb_hi <= `ZeroWord;
-            // wb_lo <= `ZeroWord;
-            // wb_whilo <= 1'b0;
+            hilo_bus <= 66'b0;
         end
         else if (stall[6] == `Stop && stall[7] == `NoStop) begin
             pc <= `ZeroWord;
             rf_we <= 1'b0;
             rf_waddr <= `NOPRegAddr;
             rf_wdata <= `ZeroWord;
-            // wb_hi <= `ZeroWord;
-            // wb_lo <= `ZeroWord;
-            // wb_whilo <= 1'b0;
+            hilo_bus <= 66'b0;
         end
         else if (stall[6] == `NoStop) begin
             pc <= pc_i;
             rf_we <= rf_we_i;
             rf_waddr <= rf_waddr_i;
             rf_wdata <= rf_wdata_i;
-            // wb_hi <= mem_hi;
-            // wb_lo <= mem_lo;
-            // wb_whilo <= mem_whilo;
+            hilo_bus <= hilo_bus_i;
         end
     end
 

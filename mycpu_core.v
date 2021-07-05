@@ -98,12 +98,14 @@ module mycpu_core(
 
     wire [31:0] rs_forward_data;
     wire [31:0] rt_forward_data;
-    
+    wire [31:0] hi, lo;
+    wire stallreq_for_ex;
     ex u_ex(
         .clk             (clk             ),
         .rst             (rst             ),
         .flush           (flush           ),
         .stall           (stall           ),
+        .stallreq_for_ex (stallreq_for_ex ),
         .id_to_ex_bus    (id_to_ex_bus    ),
         .ex_to_dc_bus    (ex_to_dc_bus    ),
         .sel_rs_forward  (sel_rs_forward  ),
@@ -111,6 +113,8 @@ module mycpu_core(
         .sel_rt_forward  (sel_rt_forward  ),
         .rt_forward_data (rt_forward_data ),
         .br_bus          (br_bus          ),
+        .hi_i            (hi),
+        .lo_i            (lo),
         .data_sram_en    (data_sram_en    ),
         .data_sram_wen   (data_sram_wen   ),
         .data_sram_addr  (data_sram_addr  ),
@@ -137,6 +141,7 @@ module mycpu_core(
         .data_sram_rdata(data_sram_rdata)
     );
 
+    wire [65:0] hilo_bus;
     wb u_wb(
     	.clk               (clk               ),
         .rst               (rst               ),
@@ -146,6 +151,7 @@ module mycpu_core(
         .rf_we             (rf_we             ),
         .rf_waddr          (rf_waddr          ),
         .rf_wdata          (rf_wdata          ),
+        .hilo_bus          (hilo_bus          ),
         .debug_wb_pc       (debug_wb_pc       ),
         .debug_wb_rf_wen   (debug_wb_rf_wen   ),
         .debug_wb_rf_wnum  (debug_wb_rf_wnum  ),
@@ -179,12 +185,37 @@ module mycpu_core(
         .rt_forward_data_r (rt_forward_data       )
     );
 
+    hilo_reg u_hilo_reg(
+    	.clk       (clk       ),
+        .rst       (rst       ),
+        .stall     (stall     ),
+        .ex_hi_we  (ex_to_dc_bus[141]  ),
+        .ex_lo_we  (ex_to_dc_bus[140]  ),
+        .ex_hi_i   (ex_to_dc_bus[139:108]   ),
+        .ex_lo_i   (ex_to_dc_bus[107:76]   ),
+        .dc_hi_we  (dc_to_mem_bus[141]  ),
+        .dc_lo_we  (dc_to_mem_bus[140]  ),
+        .dc_hi_i   (dc_to_mem_bus[139:108]   ),
+        .dc_lo_i   (dc_to_mem_bus[107:76]   ),
+        .mem_hi_we (mem_to_wb_bus[135] ),
+        .mem_lo_we (mem_to_wb_bus[134] ),
+        .mem_hi_i  (mem_to_wb_bus[133:102]  ),
+        .mem_lo_i  (mem_to_wb_bus[101:70]  ),
+        .wb_hi_we  (hilo_bus[65]  ),
+        .wb_lo_we  (hilo_bus[64]  ),
+        .wb_hi_i   (hilo_bus[63:32]   ),
+        .wb_lo_i   (hilo_bus[31:0]   ),
+        .hi_o      (hi      ),
+        .lo_o      (lo      )
+    );
+    
+
 
     ctrl u_ctrl(
     	.rst              (rst              ),
         .stallreq_from_ic (stallreq_from_ic ),
         .stallreq_from_id (stallreq_from_id ),
-        .stallreq_from_ex (stallreq_from_ex ),
+        .stallreq_for_ex  (stallreq_for_ex ),
         .stallreq_from_dc (stallreq_from_dc ),
         .stallreq_for_load(stallreq_for_load),
         .excepttype_i     (excepttype_i     ),

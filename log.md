@@ -34,3 +34,10 @@
 1. 添加访存暂停，防止提前使用还未取回的数据
 2. 添加J BNE ADD SLTI SLTIU ADDI SUB ANDI XORI SLLV SRAV SRLV BGEZ BGTZ BLEZ BLTZ BLTZAL BGEZAL JALR
 3. 修改了跳转控制的数据通路，去掉了部分无用的信号使能
+4. 测试点进度1->43
+
+### 2021-7-5
+1. 添加hilo模块及其数据通路 乘法器和除法器
+2. 添加div divu指令并通过测试点
+3. 加入mult multu指令并通过测试点
+4. 测试点进度43->58

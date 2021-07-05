@@ -32,7 +32,8 @@ module id (
     wire [2:0] sel_alu_src1;
     wire [3:0] sel_alu_src2;
     wire [11:0] br_op;
-    wire [11:0] alu_op;
+    wire [7:0] hilo_op;
+    wire [12:0] alu_op;
     wire data_ram_en;
     wire [3:0] data_ram_wen;
     
@@ -43,10 +44,11 @@ module id (
     wire [`RegBus] rf_rdata1, rf_rdata2;
 
     assign id_to_ex_bus = {
-        br_op,          // 170:159
-        id_pc,          // 158:127
-        id_inst,        // 126:95
-        alu_op,         // 94:83
+        hilo_op,        // 179:172
+        br_op,          // 171:160
+        id_pc,          // 159:128
+        id_inst,        // 127:96
+        alu_op,         // 95:83
         sel_alu_src1,   // 82:80
         sel_alu_src2,   // 79:76
         data_ram_en,    // 75
@@ -98,6 +100,7 @@ module id (
         .inst_i       (id_inst      ),
 
         .br_op        (br_op        ),
+        .hilo_op      (hilo_op      ),
 
         // .sel_nextpc   (sel_nextpc   ),
         .sel_alu_src1 (sel_alu_src1 ),

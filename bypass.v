@@ -104,6 +104,13 @@ module bypass(
             rt_forward_data_r <= 32'b0;
             // stallreq_for_load <= 1'b0;
         end
+        else if (flush) begin
+            sel_rs_forward_r <= 1'b0;
+            sel_rt_forward_r <= 1'b0;
+            rs_forward_data_r <= 32'b0;
+            rt_forward_data_r <= 32'b0;
+            // stallreq_for_load <= 1'b0;
+        end
         else begin
             sel_rs_forward_r <= sel_rs_forward;
             sel_rt_forward_r <= sel_rt_forward;

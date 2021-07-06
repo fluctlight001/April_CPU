@@ -14,11 +14,13 @@ module dc(
     wire sel_rf_res_i;
     wire rf_we_i;
     wire [4:0] rf_waddr_i;
+    wire [4:0] mem_op_i;
     wire data_ram_en_i;
     wire [3:0] data_ram_wen_i;
     wire [31:0] alu_result_i;
 
     assign {
+        mem_op_i,       // 146:142
         hilo_bus_i,     // 141:76
         pc_i,           // 75:44        
         data_ram_en_i,  // 43
@@ -34,6 +36,7 @@ module dc(
     reg sel_rf_res;
     reg rf_we;
     reg [4:0] rf_waddr;
+    reg [4:0] mem_op;
     reg data_ram_en;
     reg [3:0] data_ram_wen;
     reg [31:0] alu_result;
@@ -45,6 +48,7 @@ module dc(
             sel_rf_res <= 1'b0;
             rf_we <= 1'b0;
             rf_waddr <= 5'b0;
+            mem_op <= 5'b0;
             data_ram_en <= 1'b0;
             data_ram_wen <= 4'b0;
             alu_result <= 32'b0;
@@ -55,6 +59,7 @@ module dc(
             sel_rf_res <= 1'b0;
             rf_we <= 1'b0;
             rf_waddr <= 5'b0;
+            mem_op <= 5'b0;
             data_ram_en <= 1'b0;
             data_ram_wen <= 4'b0;
             alu_result <= 32'b0;
@@ -65,6 +70,7 @@ module dc(
             sel_rf_res <= 1'b0;
             rf_we <= 1'b0;
             rf_waddr <= 5'b0;
+            mem_op <= 5'b0;
             data_ram_en <= 1'b0;
             data_ram_wen <= 4'b0;
             alu_result <= 32'b0;
@@ -75,6 +81,7 @@ module dc(
             sel_rf_res <= sel_rf_res_i;
             rf_we <= rf_we_i;
             rf_waddr <= rf_waddr_i;
+            mem_op <= mem_op_i;
             data_ram_en <= data_ram_en_i;
             data_ram_wen <= data_ram_wen_i;
             alu_result <= alu_result_i;
@@ -82,7 +89,8 @@ module dc(
     end
 
     assign dc_to_mem_bus = {
-        hilo_bus,     // 141:76
+        mem_op,         // 146:142
+        hilo_bus,       // 141:76
         pc,             // 75:44
         data_ram_en,    // 43
         data_ram_wen,   // 42:39

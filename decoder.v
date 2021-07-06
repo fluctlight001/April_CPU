@@ -7,10 +7,12 @@ module decoder (
 
     output wire [11:0] br_op,
     output wire [7:0] hilo_op,
+    output wire [4:0] mem_op,
 
     output wire [2:0] sel_alu_src1, 
     output wire [3:0] sel_alu_src2,
     output wire [12:0] alu_op,
+    // output wire sel_load_zero_extend,
     output wire data_ram_en, 
     output wire [3:0] data_ram_wen,
     output wire rf_we, // 写使能
@@ -188,7 +190,7 @@ module decoder (
                            | inst_or | inst_xor | inst_sllv | inst_sll 
                            | inst_srav | inst_sra | inst_srlv | inst_srl;
     // imm_sign_extend to reg2
-    assign sel_alu_src2[1] = inst_addi | inst_addiu | inst_lw | inst_sw | inst_lui
+    assign sel_alu_src2[1] = inst_addi | inst_addiu | inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_sw | inst_sh | inst_sb | inst_lui
                            | inst_slti | inst_sltiu ;
     // 32'd8 to reg2
     assign sel_alu_src2[2] = inst_jal | inst_bltzal | inst_bgezal | inst_jalr;
@@ -199,7 +201,7 @@ module decoder (
     
 
 
-    assign op_add = inst_add | inst_addu | inst_addi | inst_addiu | inst_lw | inst_sw | inst_jal | inst_bltzal | inst_bgezal | inst_jalr;
+    assign op_add = inst_add | inst_addu | inst_addi | inst_addiu | inst_lw | | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_sw | inst_sh | inst_sb | inst_jal | inst_bltzal | inst_bgezal | inst_jalr;
     assign op_sub = inst_sub | inst_subu;
     assign op_slt = inst_slt | inst_slti;
     assign op_sltu = inst_sltu | inst_sltiu;
@@ -218,13 +220,22 @@ module decoder (
                      op_and, op_nor, op_or, op_xor,
                      op_sll, op_srl, op_sra, op_lui};
 
-    assign data_ram_en = inst_lw | inst_sw;
-    wire data_ram_wen_temp;
-    assign data_ram_wen_temp = inst_sw;
-    assign data_ram_wen = {4{data_ram_wen_temp}};
+    assign mem_op = {
+        inst_lb,
+        inst_lbu,
+        inst_lh,
+        inst_lhu,
+        inst_lw
+    };
+    // assign sel_load_zero_extend = inst_lbu | inst_lhu;
+    assign data_ram_en = inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lw | inst_sb | inst_sh | inst_sw;
+    // wire data_ram_wen_temp;
+    // assign data_ram_wen_temp = inst_sw;
+    assign data_ram_wen = {1'b0,inst_sb,inst_sh,inst_sw};
+    
 
     // store enable
-    assign rf_we = inst_add | inst_addu | inst_addi | inst_addiu | inst_sub | inst_subu | inst_lw 
+    assign rf_we = inst_add | inst_addu | inst_addi | inst_addiu | inst_sub | inst_subu | inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu
                  | inst_jal | inst_bltzal | inst_bgezal | inst_jalr | inst_slt | inst_slti | inst_sltu | inst_sltiu | inst_sllv | inst_sll 
                  | inst_srlv | inst_srl | inst_srav | inst_sra | inst_lui | inst_and | inst_andi
                  | inst_or | inst_ori | inst_xor | inst_xori | inst_nor | inst_mfhi | inst_mflo;
@@ -234,7 +245,7 @@ module decoder (
                          | inst_sllv | inst_sll | inst_srlv | inst_srl | inst_srav | inst_sra | inst_and 
                          | inst_or | inst_xor | inst_nor | inst_mfhi | inst_mflo;
     // store in [rt] 
-    assign sel_rf_dst[1] = inst_addi | inst_addiu | inst_lw | inst_lui | inst_ori | inst_andi | inst_xori | inst_slti | inst_sltiu;
+    assign sel_rf_dst[1] = inst_addi | inst_addiu | inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lui | inst_ori | inst_andi | inst_xori | inst_slti | inst_sltiu;
     // store in [31]
     assign sel_rf_dst[2] = inst_jal | inst_bltzal | inst_bgezal | inst_jalr;
 
@@ -242,7 +253,7 @@ module decoder (
                     | {5{sel_rf_dst[1]}} & rt
                     | {5{sel_rf_dst[2]}} & 32'd31;  
 
-    assign sel_rf_res = inst_lw; // 0 from alu_res ; 1 from ld_res
+    assign sel_rf_res = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu; // 0 from alu_res ; 1 from ld_res
 
     // assign sel_nextpc[0] = inst_addu | inst_addiu | inst_subu | inst_lw 
     //                      | inst_sw | inst_slt | inst_sltu | inst_sll 

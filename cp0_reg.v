@@ -3,6 +3,7 @@
 module cp0_reg(
     input wire clk,
     input wire rst,
+    input wire [`StallBus] stall,
 
     input wire we_i,
     input wire [4:0] waddr_i,
@@ -11,7 +12,7 @@ module cp0_reg(
 
     input wire [5:0] int_i,
 
-    output reg [31:0] data_o,
+    output wire [31:0] data_o,
     output reg [31:0] status_o,
     output reg [31:0] cause_o,
     output reg [31:0] epc_o,
@@ -22,11 +23,17 @@ module cp0_reg(
     input wire [31:0] excepttype_i,
     input wire [31:0] pc_i,
     input wire [31:0] bad_vaddr_i,
-    input wire is_in_delayslot_i
+    input wire is_in_delayslot_i,
+
+    input wire [37:0] ex_cp0_bus,
+    input wire [37:0] dc_cp0_bus,
+    input wire [37:0] mem_cp0_bus
+    // input wire [37:0] wb_cp0_bus
 );
     reg [31:0] bad_vaddr;
     reg [32:0] count;
     reg [31:0] compare;
+    reg [31:0] data_r;
 
     // write 
     always @ (posedge clk) begin
@@ -35,6 +42,7 @@ module cp0_reg(
             count <= 33'b0;
             compare <= 32'b0;
             status_o <= {4'b0001,28'd0};
+            cause_o <= 32'b0;
             epc_o <= 32'b0;
             config_o <= 32'b0;
             timer_int_o <= 32'b0;
@@ -194,35 +202,87 @@ module cp0_reg(
 
     always @ (*) begin
         if (rst == `RstEnable) begin
-            data_o <= `ZeroWord;
+            data_r <= `ZeroWord;
         end
         else begin
             case (raddr_i)
                 `CP0_REG_COUNT:begin
-                    data_o <= count;
+                    data_r <= count;
                 end
                 `CP0_REG_COMPARE:begin
-                    data_o <= compare;
+                    data_r <= compare;
                 end
                 `CP0_REG_STATUS:begin
-                    data_o <= status_o;
+                    data_r <= status_o;
                 end
                 `CP0_REG_CAUSE:begin
-                    data_o <= cause_o;
+                    data_r <= cause_o;
                 end
                 `CP0_REG_EPC:begin
-                    data_o <= epc_o;
+                    data_r <= epc_o;
                 end
                 `CP0_REG_CONFIG:begin
-                    data_o <= config_o;
+                    data_r <= config_o;
                 end
                 `CP0_REG_BADADDR:begin
-                    data_o <= bad_vaddr;
+                    data_r <= bad_vaddr;
                 end
                 default:begin
-                    data_o <= `ZeroWord;
+                    data_r <= `ZeroWord;
                 end
             endcase 
         end
     end
+
+// bypass
+    wire [31:0] cp0_data_temp;
+    wire ex_ok, dc_ok, mem_ok, wb_ok;
+    reg [37:0] ex_buffer, dc_buffer, mem_buffer;
+
+    always @ (posedge clk ) begin
+        if (rst) begin
+            {ex_buffer,dc_buffer,mem_buffer} <= {38'b0,38'b0,38'b0};
+        end
+        else if(stall[3] == `Stop && stall[4] == `NoStop) begin
+            {ex_buffer,dc_buffer,mem_buffer} <= {38'b0,38'b0,38'b0};
+        end
+        else if (stall[3] == `NoStop) begin
+            {ex_buffer,dc_buffer,mem_buffer} <= {ex_cp0_bus,dc_cp0_bus,mem_cp0_bus};
+        end
+    end
+
+    assign ex_ok = ex_buffer[37] & (raddr_i==ex_buffer[36:32]);
+    assign dc_ok = dc_buffer[37] & (raddr_i==dc_buffer[36:32]);
+    assign mem_ok = mem_buffer[37] & (raddr_i==mem_buffer[36:32]);
+    // assign wb_ok = wb_cp0_bus[37] & (raddr_i==wb_cp0_bus[36:32]);
+
+    assign cp0_data_temp = ex_ok ? ex_buffer[31:0]
+                         : dc_ok ? dc_buffer[31:0]
+                         : mem_ok ? mem_buffer[31:0]
+                        //  : wb_ok ? wb_cp0_bus[31:0]
+                         : data_r;
+    assign data_o = cp0_data_temp;
+    // assign ex_ok = ex_cp0_bus[37] & (raddr_i==ex_cp0_bus[36:32]);
+    // assign dc_ok = dc_cp0_bus[37] & (raddr_i==dc_cp0_bus[36:32]);
+    // assign mem_ok = mem_cp0_bus[37] & (raddr_i==mem_cp0_bus[36:32]);
+    // // assign wb_ok = wb_cp0_bus[37] & (raddr_i==wb_cp0_bus[36:32]);
+
+    // assign cp0_data_temp = ex_ok ? ex_cp0_bus[31:0]
+    //                      : dc_ok ? dc_cp0_bus[31:0]
+    //                      : mem_ok ? mem_cp0_bus[31:0]
+    //                     //  : wb_ok ? wb_cp0_bus[31:0]
+    //                      : data_r;
+
+    // always @ (posedge clk) begin
+    //     if(rst) begin
+    //         data_o <= 32'b0;
+    //     end
+    //     else if(stall[3] == `Stop && stall[4] == `NoStop) begin
+    //         data_o <= 32'b0;
+    //     end
+    //     else if (stall[3] == `NoStop) begin
+    //         data_o <= cp0_data_temp;
+    //     end
+    // end
+
 endmodule

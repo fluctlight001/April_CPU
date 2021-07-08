@@ -11,14 +11,15 @@ module decoder (
 
     output wire [2:0] sel_alu_src1, 
     output wire [3:0] sel_alu_src2,
-    output wire [12:0] alu_op,
+    output wire [13:0] alu_op,
     // output wire sel_load_zero_extend,
     output wire data_ram_en, 
     output wire [3:0] data_ram_wen,
     output wire rf_we, // 写使能
     output wire [`RegAddrBus] rf_waddr, // 写地址
-    output wire sel_rf_res // 写数据sel
-
+    output wire sel_rf_res, // 写数据sel
+    
+    output wire [31:0] excepttype_o
 );
     wire [5:0] opcode;
     wire [`RegAddrBus] rs;
@@ -73,7 +74,29 @@ module decoder (
     wire op_add, op_sub, op_slt, op_sltu;
     wire op_and, op_nor, op_or, op_xor;
     wire op_sll, op_srl, op_sra, op_lui;
-    wire op_hilo;
+    wire op_hilo, op_excepttype;
+
+    wire excepttype_is_syscall, excepttype_is_eret, excepttype_is_break, excepttype_is_instinvalid;
+    assign excepttype_o = {18'b0,excepttype_is_break,excepttype_is_eret,2'b00,excepttype_is_instinvalid,excepttype_is_syscall,6'b0,inst_mfc0,inst_mtc0};
+    
+    assign excepttype_is_syscall = inst_syscall;
+    assign excepttype_is_eret = inst_eret;
+    assign excepttype_is_break = inst_break;
+    assign excepttype_is_instinvalid = ~(inst_add | inst_addi | inst_addu | inst_addiu
+                                        | inst_sub | inst_subu | inst_slt | inst_slti 
+                                        | inst_sltu | inst_sltiu | inst_div | inst_divu
+                                        | inst_mult | inst_multu | inst_and | inst_andi 
+                                        | inst_lui | inst_nor | inst_or | inst_ori 
+                                        | inst_xor | inst_xori | inst_sll | inst_sllv
+                                        | inst_sra | inst_srav | inst_srl | inst_srlv
+                                        | inst_beq | inst_bne | inst_bgez | inst_bgtz
+                                        | inst_blez | inst_bltz | inst_bltzal | inst_bgezal
+                                        | inst_j | inst_jal | inst_jr | inst_jalr 
+                                        | inst_mfhi | inst_mflo | inst_mthi | inst_mtlo 
+                                        | inst_lb | inst_lbu | inst_lh | inst_lhu 
+                                        | inst_lw | inst_sb | inst_sh | inst_sw 
+                                        | inst_break | inst_syscall | inst_eret 
+                                        | inst_mfc0 | inst_mtc0);
 
     decoder_6_64 u0_decoder_6_64(
     	.in  (opcode),
@@ -214,8 +237,9 @@ module decoder (
     assign op_sra = inst_srav | inst_sra;
     assign op_lui = inst_lui;
     assign op_hilo = inst_mfhi | inst_mflo;
+    assign op_excepttype = inst_add | inst_addi | inst_sub;
 
-    assign alu_op = {op_hilo,
+    assign alu_op = {op_excepttype, op_hilo,
                      op_add, op_sub, op_slt, op_sltu,
                      op_and, op_nor, op_or, op_xor,
                      op_sll, op_srl, op_sra, op_lui};
@@ -238,14 +262,14 @@ module decoder (
     assign rf_we = inst_add | inst_addu | inst_addi | inst_addiu | inst_sub | inst_subu | inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu
                  | inst_jal | inst_bltzal | inst_bgezal | inst_jalr | inst_slt | inst_slti | inst_sltu | inst_sltiu | inst_sllv | inst_sll 
                  | inst_srlv | inst_srl | inst_srav | inst_sra | inst_lui | inst_and | inst_andi
-                 | inst_or | inst_ori | inst_xor | inst_xori | inst_nor | inst_mfhi | inst_mflo;
+                 | inst_or | inst_ori | inst_xor | inst_xori | inst_nor | inst_mfhi | inst_mflo | inst_mfc0;
 
     // store in [rd]
     assign sel_rf_dst[0] = inst_add | inst_addu | inst_sub | inst_subu | inst_slt | inst_sltu 
                          | inst_sllv | inst_sll | inst_srlv | inst_srl | inst_srav | inst_sra | inst_and 
                          | inst_or | inst_xor | inst_nor | inst_mfhi | inst_mflo;
     // store in [rt] 
-    assign sel_rf_dst[1] = inst_addi | inst_addiu | inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lui | inst_ori | inst_andi | inst_xori | inst_slti | inst_sltiu;
+    assign sel_rf_dst[1] = inst_addi | inst_addiu | inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lui | inst_ori | inst_andi | inst_xori | inst_slti | inst_sltiu | inst_mfc0;
     // store in [31]
     assign sel_rf_dst[2] = inst_jal | inst_bltzal | inst_bgezal | inst_jalr;
 
@@ -278,7 +302,7 @@ module decoder (
         inst_jalr
     };
 
-    // hilo part
+// hilo part
     assign hilo_op = {
         inst_mfhi, inst_mflo, inst_mthi, inst_mtlo,
         inst_mult, inst_multu, inst_div, inst_divu

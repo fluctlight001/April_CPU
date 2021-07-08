@@ -9,94 +9,67 @@ module mem(
 
     output wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus,
 
-    input wire [31:0] data_sram_rdata
+    input wire [31:0] data_sram_rdata,
+
+    input wire [`RegBus] cp0_status,
+    input wire [`RegBus] cp0_cause,
+    input wire [`RegBus] cp0_epc,
+
+    output wire [31:0] epc_to_ctrl
 );
 
-    wire [65:0] hilo_bus_i;
-    wire [31:0] pc_i;
-    wire sel_rf_res_i;
-    wire rf_we_i;
-    wire [4:0] rf_waddr_i;
-    wire [4:0] mem_op_i;
-    wire data_ram_en_i;
-    wire [3:0] data_ram_wen_i;
-    wire [31:0] alu_result_i;
-    
-    assign {
-        mem_op_i,       // 146:142
-        hilo_bus_i,     // 141:76
-        pc_i,           // 75:44        
-        data_ram_en_i,  // 43
-        data_ram_wen_i, // 42:39
-        sel_rf_res_i,   // 38
-        rf_we_i,        // 37
-        rf_waddr_i,     // 36:32
-        alu_result_i    // 31:0
-    } = dc_to_mem_bus;
-
-    reg [65:0] hilo_bus;
-    reg [31:0] pc;
-    reg sel_rf_res;
-    reg rf_we;
-    reg [4:0] rf_waddr;
-    wire [31:0] rf_wdata;
-    reg [4:0] mem_op;
-    reg data_ram_en;
-    reg [3:0] data_ram_wen;
-    reg [31:0] alu_result;
-    wire [31:0] mem_result;
+    reg [`DC_TO_MEM_WD-1:0] dc_to_mem_bus_r;
     reg [31:0] data_sram_rdata_r;
     
     always @ (posedge clk) begin
         if (rst) begin
-            hilo_bus <= 66'b0;
-            pc <= 32'b0;
-            sel_rf_res <= 1'b0;
-            rf_we <= 1'b0;
-            rf_waddr <= 5'b0;
-            mem_op <= 5'b0;
-            data_ram_en <= 1'b0;
-            data_ram_wen <= 4'b0;
-            alu_result <= 32'b0;
-            data_sram_rdata_r <= 32'b0;
+            dc_to_mem_bus_r <= `DC_TO_MEM_WD'b0;
         end
         else if (flush) begin
-            hilo_bus <= 66'b0;
-            pc <= 32'b0;
-            sel_rf_res <= 1'b0;
-            rf_we <= 1'b0;
-            rf_waddr <= 5'b0;
-            mem_op <= 5'b0;
-            data_ram_en <= 1'b0;
-            data_ram_wen <= 4'b0;
-            alu_result <= 32'b0;
+            dc_to_mem_bus_r <= `DC_TO_MEM_WD'b0;
             data_sram_rdata_r <= 32'b0;
         end
         else if (stall[5] == `Stop && stall[6] == `NoStop) begin
-            hilo_bus <= 66'b0;
-            pc <= 32'b0;
-            sel_rf_res <= 1'b0;
-            rf_we <= 1'b0;
-            rf_waddr <= 5'b0;
-            mem_op <= 5'b0;
-            data_ram_en <= 1'b0;
-            data_ram_wen <= 4'b0;
-            alu_result <= 32'b0;
+            dc_to_mem_bus_r <= `DC_TO_MEM_WD'b0;
             data_sram_rdata_r <= 32'b0;
         end
         else if (stall[5] == `NoStop) begin
-            hilo_bus <= hilo_bus_i;
-            pc <= pc_i;
-            sel_rf_res <= sel_rf_res_i;
-            rf_we <= rf_we_i;
-            rf_waddr <= rf_waddr_i;
-            mem_op <= mem_op_i;
-            data_ram_en <= data_ram_en_i;
-            data_ram_wen <= data_ram_wen_i;
-            alu_result <= alu_result_i;
+            dc_to_mem_bus_r <= dc_to_mem_bus;
             data_sram_rdata_r <= data_sram_rdata;
         end
     end
+
+    wire [65:0] hilo_bus;
+    wire [31:0] pc;
+    wire sel_rf_res;
+    wire rf_we;
+    wire [4:0] rf_waddr;
+    wire [31:0] rf_wdata;
+    wire [4:0] mem_op;
+    wire data_ram_en;
+    wire [3:0] data_ram_wen;
+    wire [31:0] alu_result;
+    wire [31:0] mem_result;
+    wire [31:0] excepttype_arr;
+    wire [31:0] bad_vaddr;
+    wire is_in_delayslot;
+    wire [37:0] cp0_bus;
+    
+    assign {
+        cp0_bus,        // 249:212
+        is_in_delayslot,// 211
+        bad_vaddr,      // 210:179
+        excepttype_arr, // 178:147
+        mem_op,         // 146:142
+        hilo_bus,       // 141:76
+        pc,             // 75:44        
+        data_ram_en,    // 43
+        data_ram_wen,   // 42:39
+        sel_rf_res,     // 38
+        rf_we,          // 37
+        rf_waddr,       // 36:32
+        alu_result      // 31:0
+    } = dc_to_mem_bus_r;
 
     wire inst_lb, inst_lbu, inst_lh, inst_lhu, inst_lw;
     assign {
@@ -106,7 +79,31 @@ module mem(
         inst_lhu,
         inst_lw
     } = mem_op;
-    
+
+        
+    reg [31:0] excepttype_o;
+    wire [31:0] cp0_epc_o;
+    wire is_in_delayslot_o;
+    wire [31:0] bad_vaddr_o;
+    assign is_in_delayslot_o = is_in_delayslot;
+    wire [37:0] cp0_bus_o;
+    assign cp0_bus_o = cp0_bus;
+    assign bad_vaddr_o = bad_vaddr;
+
+    assign mem_to_wb_bus = {
+        cp0_bus_o,      // 270:233
+        cp0_epc_o,      // 232:201
+        is_in_delayslot_o,// 200
+        bad_vaddr_o,    // 199:168
+        excepttype_o,   // 167:136
+        hilo_bus,       // 135:70
+        pc,             // 69:38
+        rf_we,          // 37
+        rf_waddr,       // 36:32
+        rf_wdata        // 31:0
+    };
+
+// load part
     reg [31:0] mem_result_r;
     always @ (*) begin
         case(1'b1)
@@ -184,17 +181,55 @@ module mem(
             end
         endcase
     end
-
     // assign mem_result = data_sram_rdata_r;
     assign rf_wdata = sel_rf_res ? mem_result_r : alu_result;
-    assign mem_to_wb_bus = {
-        hilo_bus,   // 135:70
-        pc,         // 69:68
-        rf_we,      // 37
-        rf_waddr,   // 36:32
-        rf_wdata    // 31:0
-    };
 
+// excepttype part
+    // wire [31:0] cp0_status;
+    // wire [31:0] cp0_cause;
+    // wire [31:0] cp0_epc;
+    assign cp0_epc_o = cp0_epc;
+
+    always @ (*) begin
+        if (rst == `RstEnable) begin
+            excepttype_o <= `ZeroWord;
+        end
+        else begin
+            excepttype_o <= `ZeroWord;
+            if (pc != `ZeroWord) begin
+                if (((cp0_cause[15:8] & cp0_status[15:8]) != 8'b0) && (cp0_status[1] == 1'b0) && (cp0_status[0] == 1'b1)) begin
+                    excepttype_o <= 32'h00000001;         //interrupt
+                end
+                else if (excepttype_arr[8] == 1'b1) begin // syscall
+                    excepttype_o <= 32'h00000008;
+                end
+                else if (excepttype_arr[13] == 1'b1) begin // break
+                    excepttype_o <= 32'h00000009;
+                end
+                else if (excepttype_arr[9] == 1'b1) begin // inst_invalid
+                    excepttype_o <= 32'h0000000a;
+                end
+                else if (excepttype_arr[10] == 1'b1) begin // trap
+                    excepttype_o <= 32'h0000000d;
+                end
+                else if (excepttype_arr[11] == 1'b1) begin // ov
+                    excepttype_o <= 32'h0000000c;
+                end
+                else if (excepttype_arr[12] == 1'b1) begin // eret
+                    excepttype_o <= 32'h0000000e;
+                end
+                else if (excepttype_arr[14] == 1'b1) begin // storeassert
+                    excepttype_o <= 32'h00000005;
+                end
+                else if (excepttype_arr[15] == 1'b1) begin // loadassert
+                    excepttype_o <= 32'h00000004;
+                end
+                else if (excepttype_arr[16] == 1'b1) begin // ft_adel
+                    excepttype_o <= 32'h00000004;
+                end
+            end
+        end
+  end
 
 
 endmodule 

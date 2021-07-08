@@ -19,8 +19,10 @@ module pc (
     reg [`InstAddrBus] pc;
     reg ce;
     wire [31:0] excepttype_o;
-
-    assign excepttype_o = 32'b0;
+    wire excepttype_is_ft_adel;
+    
+    assign excepttype_is_ft_adel = pc[0]|pc[1];
+    assign excepttype_o = {15'b0,excepttype_is_ft_adel,16'b0};
     
     wire branch_e;
     wire [`InstAddrBus] branch_target_addr;

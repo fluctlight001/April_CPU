@@ -56,7 +56,7 @@ module mycpu_core(
     	.clk          (clk          ),
         .rst          (rst          ),
         .stall        (stall        ),
-        .flush        (0        ),
+        .flush        (flush        ),
         .new_pc       (new_pc       ),
         .br_bus       (br_bus       ),
         .pc_to_ic_bus (pc_to_ic_bus )
@@ -100,6 +100,8 @@ module mycpu_core(
     wire [31:0] rt_forward_data;
     wire [31:0] hi, lo;
     wire stallreq_for_ex;
+    wire [4:0] cp0_reg_raddr;
+    wire [31:0] cp0_reg_rdata;
     ex u_ex(
         .clk             (clk             ),
         .rst             (rst             ),
@@ -113,8 +115,11 @@ module mycpu_core(
         .sel_rt_forward  (sel_rt_forward  ),
         .rt_forward_data (rt_forward_data ),
         .br_bus          (br_bus          ),
-        .hi_i            (hi),
-        .lo_i            (lo),
+        .hi_i            (hi              ),
+        .lo_i            (lo              ),
+        .cp0_reg_raddr   (cp0_reg_raddr   ),
+        .cp0_reg_data_i  (cp0_reg_rdata   ),
+        // .is_in_delayslot_i(br_bus[32]     ),
         .data_sram_en    (data_sram_en    ),
         .data_sram_wen   (data_sram_wen   ),
         .data_sram_addr  (data_sram_addr  ),
@@ -131,17 +136,25 @@ module mycpu_core(
         .dc_to_mem_bus (dc_to_mem_bus )
     );
 
+    wire [31:0] cp0_status, cp0_cause, cp0_epc;
     mem u_mem(
-    	.clk           (clk           ),
-        .rst           (rst           ),
-        .flush         (flush         ),
-        .stall         (stall         ),
-        .dc_to_mem_bus (dc_to_mem_bus ),
-        .mem_to_wb_bus (mem_to_wb_bus ),
-        .data_sram_rdata(data_sram_rdata)
+    	.clk             (clk             ),
+        .rst             (rst             ),
+        .flush           (flush           ),
+        .stall           (stall           ),
+        .dc_to_mem_bus   (dc_to_mem_bus   ),
+        .mem_to_wb_bus   (mem_to_wb_bus   ),
+        .data_sram_rdata (data_sram_rdata ),
+        .cp0_status      (cp0_status      ),
+        .cp0_cause       (cp0_cause       ),
+        .cp0_epc         (cp0_epc         )
     );
+    
 
     wire [65:0] hilo_bus;
+    wire [38:0] cp0_bus;
+    assign cp0_bus = mem_to_wb_bus[270:233];
+
     wb u_wb(
     	.clk               (clk               ),
         .rst               (rst               ),
@@ -152,6 +165,13 @@ module mycpu_core(
         .rf_waddr          (rf_waddr          ),
         .rf_wdata          (rf_wdata          ),
         .hilo_bus          (hilo_bus          ),
+
+        // .cp0_bus           (cp0_bus           ),
+        // .cp0_epc_o         (cp0_epc           ),
+        // .is_in_delayslot_o (is_in_delayslot   ),
+        // .bad_vaddr_o       (bad_vaddr         ),
+        // .excepttype_o      (excepttype_arr    ),
+        
         .debug_wb_pc       (debug_wb_pc       ),
         .debug_wb_rf_wen   (debug_wb_rf_wen   ),
         .debug_wb_rf_wnum  (debug_wb_rf_wnum  ),
@@ -209,8 +229,36 @@ module mycpu_core(
         .lo_o      (lo      )
     );
     
+    cp0_reg u_cp0_reg(
+    	.clk               (clk               ),
+        .rst               (rst               ),
+        .stall             (stall             ),
 
+        .we_i              (cp0_bus[37]       ),
+        .waddr_i           (cp0_bus[36:32]    ),
+        .raddr_i           (cp0_reg_raddr     ),
+        .data_i            (cp0_bus[31:0]     ),
+        .int_i             (int               ),
 
+        .data_o            (cp0_reg_rdata     ),
+        .status_o          (cp0_status        ),
+        .cause_o           (cp0_cause         ),
+        .epc_o             (cp0_epc           ),
+
+        .config_o          (config_o          ),
+        .timer_int_o       (timer_int_o       ),
+
+        .excepttype_i      (mem_to_wb_bus[167:136]    ),
+        .pc_i              (mem_to_wb_bus[69:38]      ),
+        .bad_vaddr_i       (mem_to_wb_bus[199:168]         ),
+        .is_in_delayslot_i (mem_to_wb_bus[200]   ),
+
+        .ex_cp0_bus        (ex_to_dc_bus[249:212]        ),
+        .dc_cp0_bus        (dc_to_mem_bus[249:212]        ),
+        .mem_cp0_bus       (mem_to_wb_bus[270:233]       )
+        // .wb_cp0_bus        (cp0_bus        )
+    );
+ 
     ctrl u_ctrl(
     	.rst              (rst              ),
         .stallreq_from_ic (stallreq_from_ic ),
@@ -218,8 +266,8 @@ module mycpu_core(
         .stallreq_for_ex  (stallreq_for_ex ),
         .stallreq_from_dc (stallreq_from_dc ),
         .stallreq_for_load(stallreq_for_load),
-        .excepttype_i     (excepttype_i     ),
-        .cp0_epc_i        (cp0_epc_i        ),
+        .excepttype_i     (mem_to_wb_bus[167:136]     ),
+        .cp0_epc_i        (mem_to_wb_bus[232:201]        ),
         .flush            (flush            ),
         .new_pc           (new_pc           ),
         .stall            (stall            )

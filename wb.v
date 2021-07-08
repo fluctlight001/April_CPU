@@ -7,11 +7,17 @@ module wb(
 
     input wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus,
     
-    output reg rf_we,
-    output reg [`RegAddrBus] rf_waddr,
-    output reg [`RegBus] rf_wdata,
+    output wire rf_we,
+    output wire [`RegAddrBus] rf_waddr,
+    output wire [`RegBus] rf_wdata,
 
-    output reg [65:0] hilo_bus,
+    output wire [65:0] hilo_bus,
+
+    output wire [37:0] cp0_bus,
+    output wire [31:0] cp0_epc_o,
+    output wire is_in_delayslot_o,
+    output wire [31:0] bad_vaddr_o,
+    output wire [31:0] excepttype_o,
 
     output wire [31:0] debug_wb_pc,
     output wire [3:0] debug_wb_rf_wen,
@@ -31,55 +37,41 @@ module wb(
 //     output reg [`InstAddrBus] wb_pc
 
 );
-    wire [65:0] hilo_bus_i;
-    wire [31:0] pc_i;
-    wire rf_we_i;
-    wire [`RegAddrBus] rf_waddr_i;
-    wire [`RegBus] rf_wdata_i;
 
-    assign {
-        hilo_bus_i,
-        pc_i,
-        rf_we_i,
-        rf_waddr_i,
-        rf_wdata_i
-    } = mem_to_wb_bus;
-
-    reg [31:0] pc;
+    reg [`MEM_TO_WB_WD-1:0] mem_to_wb_bus_r;
     // reg rf_we;
     // reg [`RegAddrBus] rf_waddr;
     // reg [`RegBus] rf_wdata;
 
     always @ (posedge clk) begin
         if (rst) begin
-            pc <= `ZeroWord;
-            rf_we <= 1'b0;
-            rf_waddr <= `NOPRegAddr;
-            rf_wdata <= `ZeroWord;
-            hilo_bus <= 66'b0;
+            mem_to_wb_bus_r <= `MEM_TO_WB_WD'b0;
         end
         else if (flush) begin
-            pc <= `ZeroWord;
-            rf_we <= 1'b0;
-            rf_waddr <= `NOPRegAddr;
-            rf_wdata <= `ZeroWord;
-            hilo_bus <= 66'b0;
+            mem_to_wb_bus_r <= `MEM_TO_WB_WD'b0;
         end
         else if (stall[6] == `Stop && stall[7] == `NoStop) begin
-            pc <= `ZeroWord;
-            rf_we <= 1'b0;
-            rf_waddr <= `NOPRegAddr;
-            rf_wdata <= `ZeroWord;
-            hilo_bus <= 66'b0;
+            mem_to_wb_bus_r <= `MEM_TO_WB_WD'b0;
         end
         else if (stall[6] == `NoStop) begin
-            pc <= pc_i;
-            rf_we <= rf_we_i;
-            rf_waddr <= rf_waddr_i;
-            rf_wdata <= rf_wdata_i;
-            hilo_bus <= hilo_bus_i;
+            mem_to_wb_bus_r <= mem_to_wb_bus;
         end
     end
+
+    wire [31:0] pc;
+
+    assign {
+        cp0_bus,
+        cp0_epc_o,
+        is_in_delayslot_o,
+        bad_vaddr_o,
+        excepttype_o,
+        hilo_bus,
+        pc,
+        rf_we,
+        rf_waddr,
+        rf_wdata
+    } = mem_to_wb_bus_r;
 
     assign debug_wb_pc = pc;
     assign debug_wb_rf_wen = {4{rf_we}};

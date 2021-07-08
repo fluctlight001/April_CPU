@@ -16,9 +16,46 @@ module ctrl (
 );
     always @ (*) begin
         if (rst) begin
-           stall <=  9'b0;
+           stall <=  8'b0;
            flush <= `False_v;
            new_pc <= `ZeroWord;
+        end
+        else if (excepttype_i != `ZeroWord) begin
+            stall <= 8'b0;
+            flush <= `True_v;
+            new_pc <= `ZeroWord;
+            case (excepttype_i)
+                32'h00000001:begin
+                    new_pc <= 32'hbfc00380;
+                end
+                32'h00000004:begin
+                    new_pc <= 32'hbfc00380;
+                end
+                32'h00000005:begin
+                    new_pc <= 32'hbfc00380;
+                end
+                32'h00000008:begin
+                    new_pc <= 32'hbfc00380;
+                end
+                32'h00000009:begin
+                    new_pc <= 32'hbfc00380;
+                end
+                32'h0000000a:begin
+                    new_pc <= 32'hbfc00380;
+                end
+                32'h0000000d:begin
+                    new_pc <= 32'hbfc00380;
+                end
+                32'h0000000c:begin
+                    new_pc <= 32'hbfc00380;
+                end
+                32'h0000000e:begin
+                    new_pc <= cp0_epc_i;
+                end
+                default:begin
+                    new_pc <= 32'b0;
+                end
+            endcase
         end
         else if(stallreq_for_load) begin
             stall <= 8'b00001111;
@@ -30,21 +67,21 @@ module ctrl (
             flush <= `False_v;
             new_pc <= `ZeroWord;
         end
-        else if (stallreq_from_dc) begin
-            stall <= 9'b011111111;
-            flush <= `False_v;
-            new_pc <= `ZeroWord;
-        end
-        else if (stallreq_from_id) begin
-            stall <= 9'b000001111;
-            flush <= `False_v;
-            new_pc <= `ZeroWord;
-        end
-        else if (stallreq_from_ic) begin
-            stall <= 9'b000000111;
-            flush <= `False_v;
-            new_pc <= `ZeroWord;
-        end
+        // else if (stallreq_from_dc) begin
+        //     stall <= 9'b011111111;
+        //     flush <= `False_v;
+        //     new_pc <= `ZeroWord;
+        // end
+        // else if (stallreq_from_id) begin
+        //     stall <= 9'b000001111;
+        //     flush <= `False_v;
+        //     new_pc <= `ZeroWord;
+        // end
+        // else if (stallreq_from_ic) begin
+        //     stall <= 9'b000000111;
+        //     flush <= `False_v;
+        //     new_pc <= `ZeroWord;
+        // end
         else begin
             stall <= 8'b0;
             flush <= 1'b0;

@@ -21,12 +21,21 @@ module id (
     output wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
     output wire [`RegAddrBus] rs_rf_raddr,
     output wire [`RegAddrBus] rt_rf_raddr
-);
+);  
+    wire [31:0] excepttype_i;
+    wire ic_ce;
     wire [31:0] ic_pc;
     reg [31:0] id_pc;
     reg [31:0] id_inst;
+    reg [31:0] excepttype_arr;
+    wire [31:0] excepttype_decoder;
+    wire [31:0] excepttype_o;
     // wire [31:0] inst_i,
-    assign ic_pc = ic_to_id_bus[31:0];
+    assign {
+        excepttype_i,
+        ic_ce,
+        ic_pc
+    } = ic_to_id_bus;
 
     wire [3:0] sel_nextpc;
     wire [2:0] sel_alu_src1;
@@ -34,7 +43,7 @@ module id (
     wire [11:0] br_op;
     wire [7:0] hilo_op;
     wire [4:0] mem_op;
-    wire [12:0] alu_op;
+    wire [13:0] alu_op;
     wire sel_load_zero_extend;
     wire data_ram_en;
     wire [3:0] data_ram_wen;
@@ -45,13 +54,16 @@ module id (
 
     wire [`RegBus] rf_rdata1, rf_rdata2;
 
+    assign excepttype_o = {excepttype_decoder[31:17],excepttype_arr[16],excepttype_decoder[15:0]};
+
     assign id_to_ex_bus = {
-        mem_op,         // 184:180
-        hilo_op,        // 179:172
-        br_op,          // 171:160
-        id_pc,          // 159:128
-        id_inst,        // 127:96
-        alu_op,         // 95:83
+        excepttype_o,   // 217:186
+        mem_op,         // 185:181
+        hilo_op,        // 180:173
+        br_op,          // 172:161
+        id_pc,          // 160:129
+        id_inst,        // 128:97
+        alu_op,         // 96:83
         sel_alu_src1,   // 82:80
         sel_alu_src2,   // 79:76
         data_ram_en,    // 75
@@ -66,26 +78,31 @@ module id (
     reg [`InstAddrBus] inst;
     always @ (posedge clk) begin
         if (rst) begin
+            excepttype_arr <= 32'b0;
             id_pc <= `ZeroWord;
             id_inst <= `ZeroWord;
             flag <= 1'b0;
         end
         else if (flush || br_e) begin
+            excepttype_arr <= 32'b0;
             id_pc <= `ZeroWord;
             id_inst <= `ZeroWord;
             flag <= 1'b0;
         end
         else if (stall[2] == `Stop && stall[3] == `NoStop) begin
+            excepttype_arr <= 32'b0;
             id_pc <= `ZeroWord;
             id_inst <= `ZeroWord;
             flag <= 1'b0;
         end 
         else if (stall[2] == `NoStop&&flag) begin
+            excepttype_arr <= excepttype_i;
             id_pc <= ic_pc;
             id_inst <= inst;
             flag <= 1'b0;
         end
         else if (stall[2]==`NoStop&&~flag) begin
+            excepttype_arr <= excepttype_i;
             id_pc <= ic_pc;
             id_inst <= ic_inst;
             flag <= 1'b0;
@@ -115,7 +132,9 @@ module id (
         .data_ram_wen (data_ram_wen ),
         .rf_we        (rf_we        ),
         .rf_waddr     (rf_waddr     ),
-        .sel_rf_res   (sel_rf_res   )
+        .sel_rf_res   (sel_rf_res   ),
+
+        .excepttype_o (excepttype_decoder)
     );
 
     wire [`RegAddrBus] raddr1;

@@ -29,6 +29,13 @@ module ex (
     input wire [31:0] hi_i, lo_i,
     // output wire [65:0] hilo_bus,
 
+    // cp0
+    output wire [4:0] cp0_reg_raddr,
+    input wire [31:0] cp0_reg_data_i,
+
+    // excepttype
+    // input wire is_in_delayslot_i,
+
     // data sram interface
     output wire        data_sram_en   ,
     output wire [ 3:0] data_sram_wen  ,
@@ -40,7 +47,7 @@ module ex (
     wire [11:0] br_op_i;
     wire [7:0] hilo_op_i;
     wire [4:0] mem_op_i;
-    wire [12:0] alu_op_i;
+    wire [13:0] alu_op_i;
     wire [2:0] sel_alu_src1_i;
     wire [3:0] sel_alu_src2_i;
     wire sel_load_zero_extend_i;
@@ -50,14 +57,16 @@ module ex (
     wire [`RegAddrBus] rf_waddr_i;
     wire sel_rf_res_i;
     wire [31:0] rf_rdata1_i, rf_rdata2_i;
+    wire [31:0] excepttype_i;
 
     assign {
-        mem_op_i,       // 184:180
-        hilo_op_i,      // 179:172
-        br_op_i,        // 171:160
-        pc_i,           // 159:128
-        inst_i,         // 127:96
-        alu_op_i,       // 95:83
+        excepttype_i,   // 217:186
+        mem_op_i,       // 185:181
+        hilo_op_i,      // 180:173
+        br_op_i,        // 172:161
+        pc_i,           // 160:129
+        inst_i,         // 128:97
+        alu_op_i,       // 96:83
         sel_alu_src1_i, // 82:80
         sel_alu_src2_i, // 79:76
         data_ram_en_i,  // 75
@@ -73,7 +82,7 @@ module ex (
     reg [11:0] br_op;
     reg [7:0] hilo_op;
     reg [4:0] mem_op;
-    reg [12:0] alu_op;
+    reg [13:0] alu_op;
     reg [2:0] sel_alu_src1;
     reg [3:0] sel_alu_src2;
     reg sel_load_zero_extend;
@@ -84,15 +93,22 @@ module ex (
     reg sel_rf_res;
     reg [31:0] rf_rdata1, rf_rdata2;
     wire [31:0] imm_sign_extend, imm_zero_extend, sa_zero_extend;
+    reg [31:0] excepttype_arr;
+    wire [31:0] excepttype_o;
+    reg is_in_delayslot;
+
+    wire op_br;
+    
 
     always @(posedge clk) begin
         if (rst) begin
+            excepttype_arr <= 32'b0;
             pc <= 32'b0;
             inst <= 32'b0;
             br_op <= 12'b0;
             hilo_op <= 8'b0;
             mem_op <= 5'b0;
-            alu_op <= 13'b0;
+            alu_op <= 14'b0;
             sel_alu_src1 <= 3'b0;
             sel_alu_src2 <= 4'b0;
             // sel_load_zero_extend <= 1'b0;
@@ -103,14 +119,16 @@ module ex (
             sel_rf_res <= 1'b0;
             rf_rdata1 <= 32'b0;
             rf_rdata2 <= 32'b0;
+            is_in_delayslot <= 1'b0;
         end
         else if (flush) begin
+            excepttype_arr <= 32'b0;
             pc <= 32'b0;
             inst <= 32'b0;
             br_op <= 12'b0;
             hilo_op <= 8'b0;
             mem_op <= 5'b0;
-            alu_op <= 13'b0;
+            alu_op <= 14'b0;
             sel_alu_src1 <= 3'b0;
             sel_alu_src2 <= 4'b0;
             // sel_load_zero_extend <= 1'b0;
@@ -121,14 +139,16 @@ module ex (
             sel_rf_res <= 1'b0;
             rf_rdata1 <= 32'b0;
             rf_rdata2 <= 32'b0;
+            is_in_delayslot <= 1'b0;
         end
         else if(stall[3] == `Stop && stall[4] == `NoStop) begin
+            excepttype_arr <= 32'b0;
             pc <= 32'b0;
             inst <= 32'b0;
             br_op <= 12'b0;
             hilo_op <= 8'b0;
             mem_op <= 5'b0;
-            alu_op <= 13'b0;
+            alu_op <= 14'b0;
             sel_alu_src1 <= 3'b0;
             sel_alu_src2 <= 4'b0;
             // sel_load_zero_extend <= 1'b0;
@@ -139,8 +159,10 @@ module ex (
             sel_rf_res <= 1'b0;
             rf_rdata1 <= 32'b0;
             rf_rdata2 <= 32'b0;
+            is_in_delayslot <= 1'b0;
         end
         else if (stall[3] == `NoStop) begin
+            excepttype_arr <= excepttype_i;
             pc <= pc_i;
             inst <= inst_i;
             br_op <= br_op_i;
@@ -157,6 +179,7 @@ module ex (
             sel_rf_res <= sel_rf_res_i;
             rf_rdata1 <= rf_rdata1_i;
             rf_rdata2 <= rf_rdata2_i;
+            is_in_delayslot <= op_br;
         end
     end
 
@@ -208,9 +231,33 @@ module ex (
         .alu_result  (alu_result    )
     );
 
-    assign ex_result = alu_op[12] ? hilo_result : alu_result;
+// output
+    wire ovassert, loadassert, storeassert;
+    wire [31:0] bad_vaddr;
+    wire cp0_op;
+    wire [37:0] cp0_bus;
+    reg stop_store;
     
+    assign ex_result = alu_op[12] ? hilo_result :
+                       cp0_op ? cp0_reg_data_i : alu_result;
+    assign excepttype_o = {excepttype_arr[31:16],loadassert,storeassert,excepttype_arr[13:12],ovassert,1'b0,excepttype_arr[9:8],8'b0};
+    
+    always @ (posedge clk) begin
+        if (rst) begin
+            stop_store <= 1'b0;
+        end
+        else if (flush) begin
+            stop_store <= 1'b0;
+        end
+        else if (|excepttype_o) begin
+            stop_store <= 1'b1;
+        end
+    end
     assign ex_to_dc_bus = {
+        cp0_bus,        // 249:212
+        is_in_delayslot,// 211
+        bad_vaddr,      // 210:179
+        excepttype_o,   // 178:147
         mem_op,         // 146:142 
         hilo_bus,       // 141:76
         pc,             // 75:44
@@ -222,11 +269,14 @@ module ex (
         ex_result       // 31:0
     };
 
-    // jump module **************************
+// jump part **************************
     wire inst_beq,  inst_bne,   inst_bgez,  inst_bgtz;
     wire inst_blez, inst_bltz,  inst_bltzal,inst_bgezal;
     wire inst_j,    inst_jal,   inst_jr,    inst_jalr; 
 
+    assign op_br = inst_beq | inst_bne | inst_bgez | inst_bgtz
+                 | inst_blez | inst_bltz | inst_bltzal | inst_bgezal 
+                 | inst_j | inst_jal | inst_jr | inst_jalr;
     assign {
         inst_beq,
         inst_bne,
@@ -288,6 +338,8 @@ module ex (
         branch_e,   // 32
         br_target   // 31:0
     };
+
+// store part
 
     wire inst_sb, inst_sh, inst_sw;
     assign {
@@ -357,7 +409,7 @@ module ex (
             end
         endcase
     end
-    assign data_sram_en = data_ram_en;
+    assign data_sram_en = (|excepttype_o)|stop_store ? 1'b0 : data_ram_en;
     assign data_sram_wen = data_sram_wen_r;
     assign data_sram_addr = alu_result; 
     assign data_sram_wdata = data_sram_wdata_r;
@@ -409,7 +461,7 @@ module ex (
     reg div_start_o;
     reg signed_div_o;
 
-// MUL 
+// MUL part
     mul u_mul(
     	.clk        (clk        ),
         .resetn     (~rst     ),
@@ -420,7 +472,7 @@ module ex (
     );
     
 
-// DIV
+// DIV part
     div u_div(
     	.rst          (rst          ),
         .clk          (clk          ),
@@ -502,8 +554,53 @@ module ex (
     end
     
 
+// excepttype 
+    // wire trapassert;
 
+    wire ov_sum;
+    wire [31:0] src2_mux;
+    
+    
+    // ovassert
+    assign src2_mux = alu_op[10] ? (~alu_src2)+1 : alu_src2;
+    assign ov_sum = ((~alu_src1[31] && ~src2_mux[31] && alu_result[31]) || (alu_src1[31] && src2_mux[31]) && (~alu_result[31]));
+    assign ovassert = alu_op[13] & ov_sum;
 
+    // loadassert
+    wire inst_lb, inst_lbu, inst_lh, inst_lhu, inst_lw;
+    assign {
+        inst_lb,
+        inst_lbu,
+        inst_lh,
+        inst_lhu,
+        inst_lw
+    } = mem_op;
+    assign loadassert = (inst_lh|inst_lhu) & alu_result[0]
+                      | (inst_lw) & (alu_result[1]|alu_result[0]);
+    assign storeassert = (inst_sh) & alu_result[0] 
+                      | (inst_sw) & (alu_result[1]|alu_result[0]);
+    assign bad_vaddr = excepttype_arr[16] ? pc : alu_result;
+
+// cp0 part
+    wire inst_mfc0,inst_mtc0;
+    assign {
+        inst_mfc0,
+        inst_mtc0
+    } = excepttype_arr[1:0];
+    assign cp0_op = inst_mfc0;
+
+    wire cp0_reg_we = inst_mtc0;
+    wire [4:0] cp0_reg_waddr = inst[15:11];
+    wire [31:0] cp0_reg_wdata = alu_src2;
+
+    assign cp0_reg_raddr = inst[15:11];
+
+    assign cp0_bus = {
+        cp0_reg_we,
+        cp0_reg_waddr,
+        cp0_reg_wdata
+    };
+    
 
 
     

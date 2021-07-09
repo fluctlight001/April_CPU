@@ -6,6 +6,7 @@ module ctrl (
     input wire stallreq_for_ex,
     input wire stallreq_from_dc,
     input wire stallreq_for_load,
+    input wire stallreq_from_outside,
 
     input wire [31:0] excepttype_i,
     input wire [`RegBus] cp0_epc_i,
@@ -67,11 +68,11 @@ module ctrl (
             flush <= `False_v;
             new_pc <= `ZeroWord;
         end
-        // else if (stallreq_from_dc) begin
-        //     stall <= 9'b011111111;
-        //     flush <= `False_v;
-        //     new_pc <= `ZeroWord;
-        // end
+        else if (stallreq_from_outside) begin
+            stall <= 8'b01111111;
+            flush <= `False_v;
+            new_pc <= `ZeroWord;
+        end
         // else if (stallreq_from_id) begin
         //     stall <= 9'b000001111;
         //     flush <= `False_v;

@@ -300,7 +300,7 @@ module ex (
     wire rs_le_z;
     wire rs_lt_z;
     wire [31:0] pc_plus_4;
-    assign pc_plus_4 = pc_i; //pc + 32'h4;
+    assign pc_plus_4 = pc + 32'h4;
 
     assign rs_eq_rt = (rf_rdata1_bp == rf_rdata2_bp);
     assign rs_ge_z = ~rf_rdata1_bp[31];

@@ -24,6 +24,7 @@ module mem(
     always @ (posedge clk) begin
         if (rst) begin
             dc_to_mem_bus_r <= `DC_TO_MEM_WD'b0;
+            data_sram_rdata_r <= 32'b0;
         end
         else if (flush) begin
             dc_to_mem_bus_r <= `DC_TO_MEM_WD'b0;

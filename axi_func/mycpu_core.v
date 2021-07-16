@@ -19,7 +19,8 @@ module mycpu_core(
     output wire [31:0] debug_wb_pc,
     output wire [3:0] debug_wb_rf_wen,
     output wire [4:0] debug_wb_rf_wnum,
-    output wire [31:0] debug_wb_rf_wdata 
+    output wire [31:0] debug_wb_rf_wdata,
+    input wire stallreq_from_outside 
 );
 
     wire [`PC_TO_IC_WD-1:0] pc_to_ic_bus;
@@ -44,7 +45,7 @@ module mycpu_core(
     assign {
         inst_sram_en,
         inst_sram_addr
-    } = rst ? 33'b0 : pc_to_ic_bus[`PC_TO_IC_WD-2:0];
+    } = rst ? 33'b0 : pc_to_ic_bus[32:0];
     
 
     wire [`InstBus] ic_inst;
@@ -261,11 +262,9 @@ module mycpu_core(
  
     ctrl u_ctrl(
     	.rst              (rst              ),
-        .stallreq_from_ic (stallreq_from_ic ),
-        .stallreq_from_id (stallreq_from_id ),
         .stallreq_for_ex  (stallreq_for_ex ),
-        .stallreq_from_dc (stallreq_from_dc ),
         .stallreq_for_load(stallreq_for_load),
+        .stallreq_from_outside (stallreq_from_outside ),
         .excepttype_i     (mem_to_wb_bus[167:136]     ),
         .cp0_epc_i        (mem_to_wb_bus[232:201]        ),
         .flush            (flush            ),

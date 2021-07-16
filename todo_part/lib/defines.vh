@@ -170,26 +170,6 @@
 `define MEM_TO_WB_WD 271
 `define BR_WD 33
 
-
-//axi 状态机
-`define TEST1 4'd0
-`define TEST2 4'd1
-`define TEST3 4'd2
-
-`define READ1 4'd3
-`define READ2 4'd4
-`define READ3 4'd5
-`define READ4 4'd6
-`define READ5 4'd7
-`define READ6 4'd8
-`define READ7 4'd9
-
-`define WRITE1 4'd10
-`define WRITE2 4'd11
-`define WRITE3 4'd12
-`define WRITE4 4'd13
-`define WRITE5 4'd14
-
 //CP0寄存器地址
 `define CP0_REG_COUNT    5'b01001        //可读写
 `define CP0_REG_COMPARE    5'b01011      //可读写

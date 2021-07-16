@@ -19,24 +19,38 @@ module mem(
 );
 
     reg [`DC_TO_MEM_WD-1:0] dc_to_mem_bus_r;
-    reg [31:0] data_sram_rdata_r;
-    
+    reg [31:0] data_sram_rdata_r,data_sram_rdata_temp;
+
+    reg flag;
     always @ (posedge clk) begin
         if (rst) begin
             dc_to_mem_bus_r <= `DC_TO_MEM_WD'b0;
             data_sram_rdata_r <= 32'b0;
+            flag <= 1'b0;
         end
         else if (flush) begin
             dc_to_mem_bus_r <= `DC_TO_MEM_WD'b0;
             data_sram_rdata_r <= 32'b0;
+            flag <= 1'b0;
         end
         else if (stall[5] == `Stop && stall[6] == `NoStop) begin
             dc_to_mem_bus_r <= `DC_TO_MEM_WD'b0;
             data_sram_rdata_r <= 32'b0;
+            flag <= 1'b0;
         end
-        else if (stall[5] == `NoStop) begin
+        else if (stall[5] == `NoStop&&flag) begin
+            dc_to_mem_bus_r <= dc_to_mem_bus;
+            data_sram_rdata_r <= data_sram_rdata_temp;
+            flag <= 1'b0;
+        end
+        else if (stall[5] == `NoStop&&~flag) begin
             dc_to_mem_bus_r <= dc_to_mem_bus;
             data_sram_rdata_r <= data_sram_rdata;
+            flag <= 1'b0;
+        end
+        else if (~flag) begin
+            data_sram_rdata_temp <= data_sram_rdata;
+            flag <= 1'b1;
         end
     end
 

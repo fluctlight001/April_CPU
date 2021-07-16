@@ -1,11 +1,9 @@
 `include "lib/defines.vh"
 module ctrl (
     input wire rst,
-    input wire stallreq_from_ic,    
-    input wire stallreq_from_id,
     input wire stallreq_for_ex,
-    input wire stallreq_from_dc,
     input wire stallreq_for_load,
+    input wire stallreq_from_outside,
 
     input wire [31:0] excepttype_i,
     input wire [`RegBus] cp0_epc_i,
@@ -57,8 +55,8 @@ module ctrl (
                 end
             endcase
         end
-        else if(stallreq_for_load) begin
-            stall <= 8'b00001111;
+        else if (stallreq_from_outside) begin
+            stall <= 8'b01111111;
             flush <= `False_v;
             new_pc <= `ZeroWord;
         end
@@ -67,6 +65,13 @@ module ctrl (
             flush <= `False_v;
             new_pc <= `ZeroWord;
         end
+        else if(stallreq_for_load) begin
+            stall <= 8'b00001111;
+            flush <= `False_v;
+            new_pc <= `ZeroWord;
+        end
+
+        
         // else if (stallreq_from_dc) begin
         //     stall <= 9'b011111111;
         //     flush <= `False_v;

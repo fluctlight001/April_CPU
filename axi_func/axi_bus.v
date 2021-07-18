@@ -3,33 +3,31 @@ module axi_bus(
   input wire clk,
   input wire rst,
 
-  output reg stall,
-
-// from inst
+// from icache
   input wire [`InstAddrBus] pc_i,
-  input wire isMiss_from_icache,  //相当于inst_sram_en
+  input wire isMiss_from_icache,
 
-// to inst
-  // output reg we_icache_o,
-  // output reg [`InstAddrBus] pc_icache_o,
+// to icache
+  output reg we_icache_o,
+  output reg [`InstAddrBus] pc_icache_o,
   output reg [`InstBus] inst_icache_o,
-  // output reg last_for_icache,
+  output reg last_for_icache,
 
-// from data
+// from dcache
   input wire [`RegBus] mem_addr_i,
   input wire mem_we_i,
-  // input wire [3:0] mem_sel_i,
+  input wire [3:0] mem_sel_i,
   input wire [`RegBus] mem_data_i,
-  // input wire mem_ce_i,
-  input wire isMiss_from_dcache, //data en
-  // input wire cache_i,
+  input wire mem_ce_i,
+  input wire isMiss_from_dcache,
+  input wire cache_i,
 
-// to data
-  // output reg [`RegBus] mem_addr_o,
-  // output reg mem_we_o,
+// to dcache
+  output reg [`RegBus] mem_addr_o,
+  output reg mem_we_o,
   output reg [`RegBus] mem_data_o,
-  // output reg cache_o,
-  // output reg last_for_dcache,
+  output reg cache_o,
+  output reg last_for_dcache,
 
 //写地址通道信号
   output reg [3:0]	    awid,//写地址ID，用来标志一组写信号
@@ -85,17 +83,18 @@ module axi_bus(
   reg [`RegBus] pc_index; // pc增量
   reg [`RegBus] mem_index; // mem_addr增量
 
-  reg flag;
-
   always @ (posedge clk) begin 
     if(rst == `RstEnable)begin
-
+      we_icache_o <= `WriteDisable;
+      pc_icache_o <= `ZeroWord;
       inst_icache_o <= `ZeroWord;
+      last_for_icache <= `True_v;
 
+      mem_addr_o <= `ZeroWord;
+      mem_we_o <= `WriteDisable;
       mem_data_o <= `ZeroWord;
-
-
-      flag <= 1'b0;
+      cache_o <= `Cache;
+      last_for_dcache <= `True_v;
 
       arid <= 4'b0000;
       araddr <= `ZeroWord;
@@ -128,42 +127,62 @@ module axi_bus(
       bready <= 1'b0;
 
       state <= `TEST1;
-
+//      state_rw <= `RW1;
       pc_index <= `ZeroWord;
       mem_index <= `ZeroWord;
     end
     else begin
-      flag <= 1'b0;
       case (state)
         `TEST1:begin
+          mem_addr_o <= `ZeroWord;
+          mem_we_o <= `WriteDisable;
           if (isMiss_from_icache == `True_v) begin
             state <= `READ1;
             arid <= 4'b0000;
             araddr <= pc_i;
-            arlen <= 4'b0000;
+            arlen <= 4'b1111;
             arsize <= 3'b010;
             arvalid <= `True_v;
+            last_for_icache <= `False_v;
           end
           else if(isMiss_from_dcache == `True_v && mem_we_i == `WriteDisable) begin
             arid <= 4'b0001;
             araddr <= mem_addr_i;
-
-            arlen <= 4'b0000;
-            arsize <= 3'b010;
-
+            if (cache_i == `Cache) begin
+              arlen <= 4'b1111;
+            end
+            else begin
+              arlen <= 4'd0;  
+            end
+            if((mem_sel_i == 4'b0001)||(mem_sel_i == 4'b0010)||(mem_sel_i == 4'b0100)||(mem_sel_i == 4'b1000))begin
+              arsize <= 3'b000;
+            end
+              else if((mem_sel_i == 4'b0011)||(mem_sel_i == 4'b1100))begin
+              arsize <= 3'b001;
+            end
+            else if(mem_sel_i == 4'b1111)begin
+              arsize <= 3'b010;
+            end
             arvalid <= 1'b1;
             state <= `READ3;
-
+            last_for_dcache <= `False_v;
           end
           else if(isMiss_from_dcache == `True_v && mem_we_i == `WriteEnable) begin
             awaddr <= mem_addr_i;
-
-            awsize <= 3'b010;
+            if((mem_sel_i == 4'b0001)||(mem_sel_i == 4'b0010)||(mem_sel_i == 4'b0100)||(mem_sel_i == 4'b1000))begin
+              awsize <= 3'b000;
+            end
+              else if((mem_sel_i == 4'b0011)||(mem_sel_i == 4'b1100))begin
+              awsize <= 3'b001;
+            end
+            else if(mem_sel_i == 4'b1111)begin
+              awsize <= 3'b010;
+            end
             awvalid <= 1'b1;
-            wstrb <= 4'b1111;
+            wstrb <= mem_sel_i;
             bready <= 1'b1;
             state <= `WRITE1;
-
+            last_for_dcache <= `False_v;
           end
           else begin
           state <= `TEST1;
@@ -181,40 +200,70 @@ module axi_bus(
         `READ2:begin
           if (rlast != 1'b1) begin
             if (rvalid == 1'b1) begin
+              we_icache_o <= `WriteEnable;
+              pc_icache_o <= pc_i + pc_index;
+              pc_index <= pc_index + 32'd4;
               inst_icache_o <= rdata;
+            end
+            else begin
+              we_icache_o <= `WriteDisable;
             end
           end
           else begin
             rready <= 1'b0;
+            we_icache_o <= `WriteEnable;
+            pc_icache_o <= pc_i + pc_index;
+            pc_index <= `ZeroWord;
             inst_icache_o <= rdata;
             state <= `TEST2;
           end
         end
         `TEST2:begin
+          we_icache_o <= `WriteDisable;
+          last_for_icache <= `True_v;
           if (isMiss_from_dcache == `True_v) begin
             if (mem_we_i == `WriteDisable) begin
               arid <= 4'b0001;
               araddr <= mem_addr_i;
-
-              arlen <= 4'b0000;
-              arsize <= 3'b010;
-
+              if (cache_i == `Cache) begin
+                arlen <= 4'b1111;
+              end
+              else begin
+                arlen <= 4'd0;  
+              end
+              if((mem_sel_i == 4'b0001)||(mem_sel_i == 4'b0010)||(mem_sel_i == 4'b0100)||(mem_sel_i == 4'b1000))begin
+                arsize <= 3'b000;
+              end
+                else if((mem_sel_i == 4'b0011)||(mem_sel_i == 4'b1100))begin
+                arsize <= 3'b001;
+              end
+              else if(mem_sel_i == 4'b1111)begin
+                arsize <= 3'b010;
+              end
               arvalid <= 1'b1;
               state <= `READ3;
-
+              last_for_dcache <= `False_v;
             end
             else if (mem_we_i == `WriteEnable) begin
               awaddr <= mem_addr_i;
-              awsize <= 3'b010;
+              if((mem_sel_i == 4'b0001)||(mem_sel_i == 4'b0010)||(mem_sel_i == 4'b0100)||(mem_sel_i == 4'b1000))begin
+                awsize <= 3'b000;
+              end
+                else if((mem_sel_i == 4'b0011)||(mem_sel_i == 4'b1100))begin
+                awsize <= 3'b001;
+              end
+              else if(mem_sel_i == 4'b1111)begin
+                awsize <= 3'b010;
+              end
               awvalid <= 1'b1;
-              wstrb <= 4'b1111;
+              wstrb <= mem_sel_i;
               bready <= 1'b1;
               state <= `WRITE1;
+              last_for_dcache <= `False_v;
             end
           end
           else begin
-            flag <= 1'b1;
-            state <= `READ6;
+            state <= `TEST1;
           end
         end
         `READ3:begin
@@ -228,26 +277,31 @@ module axi_bus(
         `READ4:begin
           if (rlast != 1'b1) begin
             if (rvalid == 1'b1) begin
-
+              mem_we_o <= `WriteEnable;
+              mem_addr_o <= mem_addr_i + mem_index;
+              mem_index <= mem_index + 32'd4;
               mem_data_o <= rdata;
-
+              cache_o <= cache_i;
+            end
+            else begin
+              mem_we_o <= `WriteDisable;
             end
           end
           else begin
             rready <= 1'b0;
+            mem_we_o <= `WriteEnable;
+            mem_addr_o <= mem_addr_i + mem_index;
+            mem_index <= `ZeroWord;
             mem_data_o <= rdata;
-            
+            cache_o <= cache_i;
             state <= `READ5;
           end
         end
         `READ5:begin
-          flag <= 1'b1;
-          state <= `READ6;
-        end
-        `READ6:begin
+          mem_we_o <= `WriteDisable;
+          last_for_dcache <= `True_v;
           state <= `TEST1;
         end
-        
         `WRITE1:begin
           if(awready == 1'b1) begin
             awvalid <= 1'b0;
@@ -273,12 +327,10 @@ module axi_bus(
         `WRITE3:begin
           if(bvalid == 1'b1)begin
             bready <= 1'b0;
-            flag <= 1'b1;
-            state <= `WRITE4;
+            state <= `TEST1;
+            last_for_dcache <= `True_v;
+            mem_we_o <= `WriteEnable;
           end
-        end
-        `WRITE4:begin
-          state <= `TEST1;
         end
         // `WRITE4:begin
           
@@ -286,19 +338,4 @@ module axi_bus(
       endcase
     end
   end
-
-always @(*) begin
-  if(rst == `RstEnable)begin
-    stall = 1'b0;
-  end
-  else if(flag == 1'b1) begin
-    stall = 1'b0;
-  end
-  else if (isMiss_from_icache == `True_v)begin
-    stall = 1'b1;
-  end
-  else if(isMiss_from_dcache == `True_v) begin
-    stall = 1'b1;
-  end
-end
 endmodule

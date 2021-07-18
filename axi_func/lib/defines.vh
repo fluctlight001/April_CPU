@@ -170,6 +170,19 @@
 `define MEM_TO_WB_WD 271
 `define BR_WD 33
 
+//CP0寄存器地址
+`define CP0_REG_COUNT       5'b01001        //可读写
+`define CP0_REG_COMPARE     5'b01011        //可读写
+`define CP0_REG_STATUS      5'b01100        //可读写
+`define CP0_REG_CAUSE       5'b01101        //只读
+`define CP0_REG_EPC         5'b01110        //可读写
+`define CP0_REG_CONFIG      5'b10000        //只读
+`define CP0_REG_BADADDR     5'b01000
+
+// cache
+`define TAG_WIDTH 21    // tag + v
+`define CACHE_DEPTH 128 // depth
+`define CACHELINE_WIDTH 256
 
 //axi 状态机
 `define TEST1 4'd0
@@ -189,12 +202,3 @@
 `define WRITE3 4'd12
 `define WRITE4 4'd13
 `define WRITE5 4'd14
-
-//CP0寄存器地址
-`define CP0_REG_COUNT    5'b01001        //可读写
-`define CP0_REG_COMPARE    5'b01011      //可读写
-`define CP0_REG_STATUS    5'b01100       //可读写
-`define CP0_REG_CAUSE    5'b01101        //只读
-`define CP0_REG_EPC    5'b01110          //可读写
-`define CP0_REG_CONFIG    5'b10000       //只读
-`define CP0_REG_BADADDR    5'b01000

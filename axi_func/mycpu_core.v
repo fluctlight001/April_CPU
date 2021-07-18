@@ -2,26 +2,171 @@
 module mycpu_core(
     input wire clk,
     input wire rst,
-    input wire [5:0] int,
+    input wire [5:0] ext_int,
+    
+    output wire[3:0]   arid,
+    output wire[31:0]  araddr,
+    output wire[3:0]   arlen,
+    output wire[2:0]   arsize,
+    output wire[1:0]   arburst,
+    output wire[1:0]   arlock,
+    output wire[3:0]   arcache,
+    output wire[2:0]   arprot,
+    output wire        arvalid,
+    input  wire        arready,
 
-    output wire inst_sram_en,
-    output wire [3:0] inst_sram_wen,
-    output wire [31:0] inst_sram_addr,
-    output wire [31:0] inst_sram_wdata,
-    input wire [31:0] inst_sram_rdata,
+    input  wire[3:0]   rid,
+    input  wire[31:0]  rdata,
+    input  wire[1:0]   rresp,
+    input  wire        rlast,
+    input  wire        rvalid,
+    output wire        rready,
 
-    output wire data_sram_en,
-    output wire [3:0] data_sram_wen,
-    output wire [31:0] data_sram_addr,
-    output wire [31:0] data_sram_wdata,
-    input wire [31:0] data_sram_rdata,
+    output wire[3:0]   awid,
+    output wire[31:0]  awaddr,
+    output wire[3:0]   awlen,
+    output wire[2:0]   awsize,
+    output wire[1:0]   awburst,
+    output wire[1:0]   awlock,
+    output wire[3:0]   awcache,
+    output wire[2:0]   awprot,
+    output wire        awvalid,
+    input  wire        awready,
+
+    output wire[3:0]   wid,
+    output wire[31:0]  wdata,
+    output wire[3:0]   wstrb,
+    output wire        wlast,
+    output wire        wvalid,
+    input  wire        wready,
+
+    input  wire[3:0]   bid,
+    input  wire[1:0]   bresp,
+    input  wire        bvalid,
+    output wire        bready,
 
     output wire [31:0] debug_wb_pc,
-    output wire [3:0] debug_wb_rf_wen,
-    output wire [4:0] debug_wb_rf_wnum,
-    output wire [31:0] debug_wb_rf_wdata,
-    input wire stallreq_from_outside 
+    output wire [3 :0] debug_wb_rf_wen,
+    output wire [4 :0] debug_wb_rf_wnum,
+    output wire [31:0] debug_wb_rf_wdata 
 );
+
+    wire inst_sram_en;
+    wire [3:0] inst_sram_wen;
+    wire [31:0] inst_sram_addr;
+    wire [31:0] inst_sram_wdata;
+    wire [31:0] inst_sram_rdata;
+
+    wire data_sram_en;
+    wire [3:0] data_sram_wen;
+    wire [31:0] data_sram_addr;
+    wire [31:0] data_sram_wdata;
+    wire [31:0] data_sram_rdata;
+
+    wire icache_refresh;
+    wire icache_miss;
+    wire [31:0] icache_addr;
+    wire icache_hit;
+    wire [`CACHELINE_WIDTH-1:0] icache_cacheline_new;
+    wire icache_write_req;
+    wire [31:0] icache_write_addr;
+    wire [`CACHELINE_WIDTH-1:0] icache_cacheline_old;
+
+
+    //ctrl 
+    wire [`StallBus] stall;
+    wire flush;
+    wire [`InstAddrBus] new_pc;
+
+    axi_control u_axi_control(
+        .clk              (clk              ),
+        .rst              (rst              ),
+        .icache_miss      (icache_miss      ),
+        .icache_addr      (icache_addr      ),
+        .icache_refresh   (icache_refresh   ),
+        .icache_cacheline (icache_cacheline_new ),
+        .awid             (awid             ),
+        .awaddr           (awaddr           ),
+        .awlen            (awlen            ),
+        .awsize           (awsize           ),
+        .awburst          (awburst          ),
+        .awlock           (awlock           ),
+        .awcache          (awcache          ),
+        .awprot           (awprot           ),
+        .awvalid          (awvalid          ),
+        .awready          (awready          ),
+        .wid              (wid              ),
+        .wdata            (wdata            ),
+        .wstrb            (wstrb            ),
+        .wlast            (wlast            ),
+        .wvalid           (wvalid           ),
+        .wready           (wready           ),
+        .bid              (bid              ),
+        .bresp            (bresp            ),
+        .bvalid           (bvalid           ),
+        .bready           (bready           ),
+        .arid             (arid             ),
+        .araddr           (araddr           ),
+        .arlen            (arlen            ),
+        .arsize           (arsize           ),
+        .arburst          (arburst          ),
+        .arlock           (arlock           ),
+        .arcache          (arcache          ),
+        .arprot           (arprot           ),
+        .arvalid          (arvalid          ),
+        .arready          (arready          ),
+        .rid              (rid              ),
+        .rdata            (rdata            ),
+        .rresp            (rresp            ),
+        .rlast            (rlast            ),
+        .rvalid           (rvalid           ),
+        .rready           (rready           )
+    );
+
+    wire stallreq_from_icache;
+
+    cache_tag u_icache_tag(
+    	.clk        (clk        ),
+        .rst        (rst        ),
+        .stallreq   (stallreq_from_icache),
+        .sram_en    (inst_sram_en    ),
+        .sram_wen   (inst_sram_wen   ),
+        .sram_addr  (inst_sram_addr  ),
+        .sram_wdata (inst_sram_wdata ),
+
+        .refresh    (icache_refresh  ),
+        .miss       (icache_miss     ),
+        .axi_addr   (icache_addr     ),
+        .hit        (icache_hit      )
+    );
+
+    cache_data u_icache_data(
+    	.clk           (clk                ),
+        .rst           (rst                ),
+        .stall         (stall              ),
+        .flush         (flush              ),
+        .br_e          (br_bus[32]         ),
+        .write_back    (~icache_hit        ),
+        .hit           (icache_hit         ),
+        .sram_en       (inst_sram_en       ),
+        .sram_wen      (inst_sram_wen      ),
+        .sram_addr     (inst_sram_addr     ),
+        .sram_wdata    (inst_sram_wdata    ),
+        .sram_rdata    (inst_sram_rdata    ),
+        .refresh       (icache_refresh     ),
+        .cacheline_new (icache_cacheline_new ),
+        .write_req     (icache_write_req     ),
+        .write_addr    (icache_write_addr    ),
+        .cacheline_old (icache_cacheline_old )
+    );
+    
+
+
+    
+
+
+
+
 
     wire [`PC_TO_IC_WD-1:0] pc_to_ic_bus;
     wire [`IC_TO_ID_WD-1:0] ic_to_id_bus;
@@ -32,10 +177,7 @@ module mycpu_core(
     wire [`BR_WD-1:0] br_bus; 
 
 
-    //ctrl 
-    wire [`StallBus] stall;
-    wire flush;
-    wire [`InstAddrBus] new_pc;
+    
 
 
     // assign inst_sram_en     = rst ? 1'b0 : pc_ce;
@@ -239,7 +381,7 @@ module mycpu_core(
         .waddr_i           (cp0_bus[36:32]    ),
         .raddr_i           (cp0_reg_raddr     ),
         .data_i            (cp0_bus[31:0]     ),
-        .int_i             (int               ),
+        .int_i             (ext_int           ),
 
         .data_o            (cp0_reg_rdata     ),
         .status_o          (cp0_status        ),
@@ -264,7 +406,8 @@ module mycpu_core(
     	.rst              (rst              ),
         .stallreq_for_ex  (stallreq_for_ex ),
         .stallreq_for_load(stallreq_for_load),
-        .stallreq_from_outside (stallreq_from_outside ),
+        .stallreq_from_icache   (stallreq_from_icache),
+        .stallreq_from_dcache   (),
         .excepttype_i     (mem_to_wb_bus[167:136]     ),
         .cp0_epc_i        (mem_to_wb_bus[232:201]        ),
         .flush            (flush            ),

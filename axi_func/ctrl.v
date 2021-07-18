@@ -3,7 +3,8 @@ module ctrl (
     input wire rst,
     input wire stallreq_for_ex,
     input wire stallreq_for_load,
-    input wire stallreq_from_outside,
+    input wire stallreq_from_icache,
+    input wire stallreq_from_dcache,
 
     input wire [31:0] excepttype_i,
     input wire [`RegBus] cp0_epc_i,
@@ -55,7 +56,7 @@ module ctrl (
                 end
             endcase
         end
-        else if (stallreq_from_outside) begin
+        else if (stallreq_from_icache|stallreq_from_dcache) begin
             stall <= 8'b01111111;
             flush <= `False_v;
             new_pc <= `ZeroWord;

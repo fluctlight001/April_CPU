@@ -178,3 +178,7 @@
 `define CP0_REG_EPC    5'b01110          //可读写
 `define CP0_REG_CONFIG    5'b10000       //只读
 `define CP0_REG_BADADDR    5'b01000
+
+// cache
+`define TAG_WIDTH 21    // tag + v
+`define CACHE_DEPTH 128 // depth

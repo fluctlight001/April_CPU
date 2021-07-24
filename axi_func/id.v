@@ -83,7 +83,13 @@ module id (
             id_inst <= `ZeroWord;
             flag <= 1'b0;
         end
-        else if (flush || br_e) begin
+        else if (flush) begin
+            excepttype_arr <= 32'b0;
+            id_pc <= `ZeroWord;
+            id_inst <= `ZeroWord;
+            flag <= 1'b0;
+        end
+        else if (stall[2]==`NoStop && stall[3]==`NoStop && br_e) begin
             excepttype_arr <= 32'b0;
             id_pc <= `ZeroWord;
             id_inst <= `ZeroWord;

@@ -63,110 +63,219 @@ module mycpu_core(
     wire [31:0] data_sram_wdata;
     wire [31:0] data_sram_rdata;
 
+    // icache tag
     wire icache_refresh;
     wire icache_miss;
-    wire [31:0] icache_addr;
+    wire [31:0] icache_raddr;
+    wire icache_write_back;
+    wire [31:0] icache_waddr;
     wire icache_hit;
+
+    // icache data
     wire [`CACHELINE_WIDTH-1:0] icache_cacheline_new;
-    wire icache_write_req;
-    wire [31:0] icache_write_addr;
     wire [`CACHELINE_WIDTH-1:0] icache_cacheline_old;
 
+    // dcache tag
+    wire dcache_cached;
+    wire dcache_refresh;
+    wire dcache_miss;
+    wire [31:0] dcache_raddr;
+    wire dcache_write_back;
+    wire [31:0] dcache_waddr;
+    wire dcache_hit;
+
+    // dcache data
+    wire [`CACHELINE_WIDTH-1:0] dcache_cacheline_new;
+    wire [`CACHELINE_WIDTH-1:0] dcache_cacheline_old;
+
+    // uncache tag
+    wire uncache_refresh;
+    wire uncache_en;
+    wire [3:0] uncache_wen;
+    wire [31:0] uncache_addr;
+    wire uncache_hit;
+    
+    // uncache data
+    wire [31:0] uncache_rdata;
 
     //ctrl 
     wire [`StallBus] stall;
     wire flush;
     wire [`InstAddrBus] new_pc;
+    
+    wire stallreq_from_icache;
+    wire stallreq_from_dcache;
+    wire stallreq_from_uncache;
 
     axi_control u_axi_control(
-        .clk              (clk              ),
-        .rst              (rst              ),
-        .icache_miss      (icache_miss      ),
-        .icache_addr      (icache_addr      ),
-        .icache_refresh   (icache_refresh   ),
-        .icache_cacheline (icache_cacheline_new ),
-        .awid             (awid             ),
-        .awaddr           (awaddr           ),
-        .awlen            (awlen            ),
-        .awsize           (awsize           ),
-        .awburst          (awburst          ),
-        .awlock           (awlock           ),
-        .awcache          (awcache          ),
-        .awprot           (awprot           ),
-        .awvalid          (awvalid          ),
-        .awready          (awready          ),
-        .wid              (wid              ),
-        .wdata            (wdata            ),
-        .wstrb            (wstrb            ),
-        .wlast            (wlast            ),
-        .wvalid           (wvalid           ),
-        .wready           (wready           ),
-        .bid              (bid              ),
-        .bresp            (bresp            ),
-        .bvalid           (bvalid           ),
-        .bready           (bready           ),
-        .arid             (arid             ),
-        .araddr           (araddr           ),
-        .arlen            (arlen            ),
-        .arsize           (arsize           ),
-        .arburst          (arburst          ),
-        .arlock           (arlock           ),
-        .arcache          (arcache          ),
-        .arprot           (arprot           ),
-        .arvalid          (arvalid          ),
-        .arready          (arready          ),
-        .rid              (rid              ),
-        .rdata            (rdata            ),
-        .rresp            (rresp            ),
-        .rlast            (rlast            ),
-        .rvalid           (rvalid           ),
-        .rready           (rready           )
+    	.clk                  (clk                  ),
+        .rstn                 (~rst                 ),
+
+        .icache_ren           (icache_miss           ),
+        .icache_raddr         (icache_raddr         ),
+        .icache_cacheline_new (icache_cacheline_new ),
+        .icache_wen           (icache_write_back           ),
+        .icache_waddr         (icache_waddr         ),
+        .icache_cacheline_old (icache_cacheline_old ),
+        .icache_refresh       (icache_refresh       ),
+
+        .dcache_ren           (dcache_miss           ),
+        .dcache_raddr         (dcache_raddr         ),
+        .dcache_cacheline_new (dcache_cacheline_new ),
+        .dcache_wen           (dcache_write_back           ),
+        .dcache_waddr         (dcache_waddr         ),
+        .dcache_cacheline_old (dcache_cacheline_old ),
+        .dcache_refresh       (dcache_refresh       ),
+
+        .uncache_en           (uncache_en           ),
+        .uncache_wen          (uncache_wen          ),
+        .uncache_addr         (uncache_addr         ),
+        .uncache_wdata        (data_sram_wdata      ),
+        .uncache_rdata        (uncache_rdata        ),
+        .uncache_refresh      (uncache_refresh      ),
+
+        .arid                 (arid                 ),
+        .araddr               (araddr               ),
+        .arlen                (arlen                ),
+        .arsize               (arsize               ),
+        .arburst              (arburst              ),
+        .arlock               (arlock               ),
+        .arcache              (arcache              ),
+        .arprot               (arprot               ),
+        .arvalid              (arvalid              ),
+        .arready              (arready              ),
+        .rid                  (rid                  ),
+        .rdata                (rdata                ),
+        .rresp                (rresp                ),
+        .rlast                (rlast                ),
+        .rvalid               (rvalid               ),
+        .rready               (rready               ),
+        .awid                 (awid                 ),
+        .awaddr               (awaddr               ),
+        .awlen                (awlen                ),
+        .awsize               (awsize               ),
+        .awburst              (awburst              ),
+        .awlock               (awlock               ),
+        .awcache              (awcache              ),
+        .awprot               (awprot               ),
+        .awvalid              (awvalid              ),
+        .awready              (awready              ),
+        .wid                  (wid                  ),
+        .wdata                (wdata                ),
+        .wstrb                (wstrb                ),
+        .wlast                (wlast                ),
+        .wvalid               (wvalid               ),
+        .wready               (wready               ),
+        .bid                  (bid                  ),
+        .bresp                (bresp                ),
+        .bvalid               (bvalid               ),
+        .bready               (bready               )
     );
-
-    wire stallreq_from_icache;
-
+    
     cache_tag u_icache_tag(
     	.clk        (clk        ),
         .rst        (rst        ),
-        .stallreq   (stallreq_from_icache),
+        .stallreq   (stallreq_from_icache   ),
+        .cached     (1'b1     ),
         .sram_en    (inst_sram_en    ),
         .sram_wen   (inst_sram_wen   ),
         .sram_addr  (inst_sram_addr  ),
-        .sram_wdata (inst_sram_wdata ),
-
-        .refresh    (icache_refresh  ),
-        .miss       (icache_miss     ),
-        .axi_addr   (icache_addr     ),
-        .hit        (icache_hit      )
+        .refresh    (icache_refresh    ),
+        .miss       (icache_miss       ),
+        .axi_raddr  (icache_raddr  ),
+        .write_back (icache_write_back ),
+        .axi_waddr  (icache_waddr  ),
+        .hit        (icache_hit        )
     );
 
     cache_data u_icache_data(
-    	.clk           (clk                ),
-        .rst           (rst                ),
-        .stall         (stall              ),
-        .flush         (flush              ),
-        .br_e          (br_bus[32]         ),
-        .write_back    (~icache_hit        ),
-        .hit           (icache_hit         ),
+    	.clk           (clk           ),
+        .rst           (rst           ),
+        .write_back    (icache_write_back    ),
+        .hit           (icache_hit           ),
+        .cached        (1'b1        ),
         .sram_en       (inst_sram_en       ),
         .sram_wen      (inst_sram_wen      ),
         .sram_addr     (inst_sram_addr     ),
         .sram_wdata    (inst_sram_wdata    ),
         .sram_rdata    (inst_sram_rdata    ),
-        .refresh       (icache_refresh     ),
+        .refresh       (icache_refresh       ),
         .cacheline_new (icache_cacheline_new ),
-        .write_req     (icache_write_req     ),
-        .write_addr    (icache_write_addr    ),
         .cacheline_old (icache_cacheline_old )
     );
+
+    wire [31:0] data_sram_addr_mmu;
+    wire [31:0] dcache_temp_rdata;
+    wire [31:0] uncache_temp_rdata;
+    mmu u_mmu(
+    	.addr_i  (data_sram_addr  ),
+        .addr_o  (data_sram_addr_mmu  ),
+        .cache_v (dcache_cached )
+    );
     
-
-
     
-
-
-
-
+    cache_tag u_dcache_tag(
+    	.clk        (clk        ),
+        .rst        (rst        ),
+        .stallreq   (stallreq_from_dcache   ),
+        .cached     (dcache_cached     ),
+        .sram_en    (data_sram_en    ),
+        .sram_wen   (data_sram_wen   ),
+        .sram_addr  (data_sram_addr_mmu  ),
+        .refresh    (dcache_refresh    ),
+        .miss       (dcache_miss       ),
+        .axi_raddr  (dcache_raddr  ),
+        .write_back (dcache_write_back ),
+        .axi_waddr  (dcache_waddr  ),
+        .hit        (dcache_hit        )
+    );
+    
+    cache_data u_dcache_data(
+    	.clk           (clk           ),
+        .rst           (rst           ),
+        .write_back    (dcache_write_back    ),
+        .hit           (dcache_hit           ),
+        .cached        (dcache_cached        ),
+        .sram_en       (data_sram_en       ),
+        .sram_wen      (data_sram_wen      ),
+        .sram_addr     (data_sram_addr_mmu     ),
+        .sram_wdata    (data_sram_wdata    ),
+        .sram_rdata    (dcache_temp_rdata   ),
+        .refresh       (dcache_refresh       ),
+        .cacheline_new (dcache_cacheline_new ),
+        .cacheline_old (dcache_cacheline_old )
+    );
+    
+    uncache_tag u_uncache_tag(
+    	.clk       (clk       ),
+        .rst       (rst       ),
+        .stallreq  (stallreq_from_uncache  ),
+        .cached    (dcache_cached    ),
+        .sram_en   (data_sram_en   ),
+        .sram_wen  (data_sram_wen  ),
+        .sram_addr (data_sram_addr_mmu ),
+        .refresh   (uncache_refresh   ),
+        .axi_en    (uncache_en    ),
+        .axi_wsel  (uncache_wen  ),
+        .axi_addr  (uncache_addr  ),
+        .hit       (uncache_hit   )
+    );
+    
+    uncache_data u_uncache_data(
+    	.clk        (clk        ),
+        .rst        (rst        ),
+        .hit        (uncache_hit        ),
+        .cached     (dcache_cached     ),
+        .refresh    (uncache_refresh    ),
+        .axi_rdata  (uncache_rdata  ),
+        .sram_rdata (uncache_temp_rdata )
+    );
+    
+    reg dcache_cached_r;
+    always @ (posedge clk) begin
+        dcache_cached_r <= dcache_cached;
+    end
+    assign data_sram_rdata = dcache_cached_r ? dcache_temp_rdata : uncache_temp_rdata;
 
     wire [`PC_TO_IC_WD-1:0] pc_to_ic_bus;
     wire [`IC_TO_ID_WD-1:0] ic_to_id_bus;
@@ -187,7 +296,7 @@ module mycpu_core(
     assign {
         inst_sram_en,
         inst_sram_addr
-    } = rst ? 33'b0 : pc_to_ic_bus[32:0];
+    } = rst ? 33'b0 : flush ? 33'b0 : pc_to_ic_bus[32:0];
     
 
     wire [`InstBus] ic_inst;
@@ -407,7 +516,8 @@ module mycpu_core(
         .stallreq_for_ex  (stallreq_for_ex ),
         .stallreq_for_load(stallreq_for_load),
         .stallreq_from_icache   (stallreq_from_icache),
-        .stallreq_from_dcache   (),
+        .stallreq_from_dcache   (stallreq_from_dcache),
+        .stallreq_from_axi      (stallreq_from_uncache),
         .excepttype_i     (mem_to_wb_bus[167:136]     ),
         .cp0_epc_i        (mem_to_wb_bus[232:201]        ),
         .flush            (flush            ),

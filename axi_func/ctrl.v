@@ -5,6 +5,7 @@ module ctrl (
     input wire stallreq_for_load,
     input wire stallreq_from_icache,
     input wire stallreq_from_dcache,
+    input wire stallreq_from_axi,
 
     input wire [31:0] excepttype_i,
     input wire [`RegBus] cp0_epc_i,
@@ -56,7 +57,7 @@ module ctrl (
                 end
             endcase
         end
-        else if (stallreq_from_icache|stallreq_from_dcache) begin
+        else if (stallreq_from_icache|stallreq_from_dcache|stallreq_from_axi) begin
             stall <= 8'b01111111;
             flush <= `False_v;
             new_pc <= `ZeroWord;
@@ -71,23 +72,6 @@ module ctrl (
             flush <= `False_v;
             new_pc <= `ZeroWord;
         end
-
-        
-        // else if (stallreq_from_dc) begin
-        //     stall <= 9'b011111111;
-        //     flush <= `False_v;
-        //     new_pc <= `ZeroWord;
-        // end
-        // else if (stallreq_from_id) begin
-        //     stall <= 9'b000001111;
-        //     flush <= `False_v;
-        //     new_pc <= `ZeroWord;
-        // end
-        // else if (stallreq_from_ic) begin
-        //     stall <= 9'b000000111;
-        //     flush <= `False_v;
-        //     new_pc <= `ZeroWord;
-        // end
         else begin
             stall <= 8'b0;
             flush <= 1'b0;

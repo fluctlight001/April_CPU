@@ -6,24 +6,33 @@ module cache_tag(
     
     output wire stallreq,
 
+    input wire cached,   //  根据是不是uncache，来控制cacheline是否可复用
+
     // sram_port
     input wire sram_en,
     input wire [3:0] sram_wen,
     input wire [31:0] sram_addr,
-    input wire [31:0] sram_wdata,
+    // input wire [31:0] sram_wdata,
     // output wire [31:0] sram_rdata,
     // axi
-    input wire refresh, //刷新,控制新pc写入
+    input wire refresh, // 刷新,控制新pc写入
+
     output wire miss,
-    output wire [31:0] axi_addr,
+    output wire [31:0] axi_raddr,
+    output wire write_back,
+    output wire [31:0] axi_waddr,
 
     // cache_data
     output wire hit
 );
-    reg [`TAG_WIDTH-1:0] tag_way0 [`CACHE_DEPTH-1:0]; // tag + v
+    reg [`TAG_WIDTH-1:0] tag_way0 [`CACHE_DEPTH-1:0]; // v + tag 
     wire [`TAG_WIDTH-2:0] tag;
     wire [6:0] index;
     wire [4:0] offset;
+    wire cached_v;
+    
+    assign cached_v = cached;
+    
     assign {
         tag,
         index,
@@ -162,13 +171,13 @@ module cache_tag(
             tag_way0[127] <= 21'b0;
         end
         else if (refresh) begin
-            tag_way0[index] <= {tag,1'b1};
+            tag_way0[index] <= {cached_v,tag};
         end
     end
 
-    assign hit = sram_en & ({tag,1'b1} == tag_way0[index]);
-    assign miss = sram_en & ~hit;
+    assign hit = cached_v & sram_en & ({1'b1,tag} == tag_way0[index]);
+    assign miss = cached_v & sram_en & ~hit;
     assign stallreq = miss;
-    assign axi_addr = {sram_addr[31:5],5'b0};
+    assign axi_raddr = cached_v ? {sram_addr[31:5],5'b0} : sram_addr;
 
 endmodule

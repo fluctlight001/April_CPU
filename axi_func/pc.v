@@ -48,6 +48,7 @@ module pc (
     always @ (posedge clk) begin
         if (rst) begin
             pc <= 32'hbfbf_fffc;
+            // pc <= 32'hbfc00820-4'h4;
         end
         else if (stall[0]==`NoStop) begin
             pc <= next_pc;

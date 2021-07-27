@@ -181,8 +181,10 @@
 
 // cache
 `define TAG_WIDTH 21    // tag + v
-`define CACHE_DEPTH 128 // depth
+`define INDEX_WIDTH 128 // 块高  // depth
 `define CACHELINE_WIDTH 256
+`define HIT_WIDTH 2
+`define LRU_WIDTH 1
 
 //axi 状态机
 `define TEST1 4'd0

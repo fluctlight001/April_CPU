@@ -113,6 +113,10 @@ module id (
             id_inst <= ic_inst;
             flag <= 1'b0;
         end
+        else if (~flag&br_e) begin
+            inst <= 32'b0;
+            flag <= 1'b1;
+        end
         else if (~flag) begin
             inst <= ic_inst;
             flag <= 1'b1;

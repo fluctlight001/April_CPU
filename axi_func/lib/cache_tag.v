@@ -25,11 +25,12 @@ module cache_tag(
     // cache_data
     output wire hit
 );
-    reg [`TAG_WIDTH-1:0] tag_way0 [`CACHE_DEPTH-1:0]; // v + tag 
+    reg [`TAG_WIDTH-1:0] tag_way0 [`INDEX_WIDTH-1:0]; // v + tag 
     wire [`TAG_WIDTH-2:0] tag;
     wire [6:0] index;
     wire [4:0] offset;
     wire cached_v;
+    // wire [`TAG_WIDTH-1:0] tag_ram_out;
     
     assign cached_v = cached;
     
@@ -38,6 +39,14 @@ module cache_tag(
         index,
         offset
     } = sram_addr;
+
+    // tag_dist_ram u_tag_ram(
+    //     .clk(clk),
+    //     .we(refresh),
+    //     .a(index),
+    //     .d({cached_v,tag}),
+    //     .spo(tag_ram_out)
+    // );
 
     always @ (posedge clk) begin
         if (rst) begin
@@ -175,9 +184,15 @@ module cache_tag(
         end
     end
 
+    // assign hit = cached_v & sram_en & ({1'b1,tag} == tag_ram_out);
     assign hit = cached_v & sram_en & ({1'b1,tag} == tag_way0[index]);
     assign miss = cached_v & sram_en & ~hit;
     assign stallreq = miss;
     assign axi_raddr = cached_v ? {sram_addr[31:5],5'b0} : sram_addr;
-
+    assign write_back = cached_v & sram_en & miss & tag_way0[index][`TAG_WIDTH-1];
+    assign axi_waddr = {
+        tag_way0[index][`TAG_WIDTH-2:0],
+        index,
+        5'b0
+    };
 endmodule

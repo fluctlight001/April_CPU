@@ -31,9 +31,19 @@ module cp0_reg(
     // input wire [37:0] wb_cp0_bus
 );
     reg [31:0] bad_vaddr;
-    reg [32:0] count;
+    reg [31:0] count;
     reg [31:0] compare;
     reg [31:0] data_r;
+
+    reg tick;
+    always @ (posedge clk) begin
+        if (rst) begin
+            tick <= 1'b0;
+        end
+        else begin
+            tick <= ~tick;
+        end
+    end
 
     // write 
     always @ (posedge clk) begin
@@ -46,9 +56,12 @@ module cp0_reg(
             epc_o <= 32'b0;
             config_o <= 32'b0;
             timer_int_o <= 32'b0;
+            
         end
         else begin
-            count <= count + 1'b1;
+            if (tick) begin
+                count <= count + 1'b1;
+            end
             cause_o[15:10] <= int_i;
             if (compare != 32'b0 && count == compare) begin
                 timer_int_o <= `InterruptAssert;

@@ -69,7 +69,8 @@ module mycpu_core(
     wire [31:0] icache_raddr;
     wire icache_write_back;
     wire [31:0] icache_waddr;
-    wire icache_hit;
+    wire [`HIT_WIDTH-1:0] icache_hit;
+    wire icache_lru;
 
     // icache data
     wire [`CACHELINE_WIDTH-1:0] icache_cacheline_new;
@@ -82,7 +83,8 @@ module mycpu_core(
     wire [31:0] dcache_raddr;
     wire dcache_write_back;
     wire [31:0] dcache_waddr;
-    wire dcache_hit;
+    wire [`HIT_WIDTH-1:0] dcache_hit;
+    wire dcache_lru;
 
     // dcache data
     wire [`CACHELINE_WIDTH-1:0] dcache_cacheline_new;
@@ -107,14 +109,14 @@ module mycpu_core(
     wire stallreq_from_dcache;
     wire stallreq_from_uncache;
 
-    axi_control u_axi_control(
+    axi_control_v2 u_axi_control(
     	.clk                  (clk                  ),
         .rstn                 (~rst                 ),
 
         .icache_ren           (icache_miss           ),
         .icache_raddr         (icache_raddr         ),
         .icache_cacheline_new (icache_cacheline_new ),
-        .icache_wen           (icache_write_back           ),
+        .icache_wen           (1'b0           ),
         .icache_waddr         (icache_waddr         ),
         .icache_cacheline_old (icache_cacheline_old ),
         .icache_refresh       (icache_refresh       ),
@@ -171,8 +173,8 @@ module mycpu_core(
         .bvalid               (bvalid               ),
         .bready               (bready               )
     );
-    
-    cache_tag u_icache_tag(
+
+    cache_tag_v2 u_icache_tag(
     	.clk        (clk        ),
         .rst        (rst        ),
         .stallreq   (stallreq_from_icache   ),
@@ -185,14 +187,32 @@ module mycpu_core(
         .axi_raddr  (icache_raddr  ),
         .write_back (icache_write_back ),
         .axi_waddr  (icache_waddr  ),
-        .hit        (icache_hit        )
+        .hit        (icache_hit        ),
+        .lru        (icache_lru        )
     );
+    
+    // cache_tag u_icache_tag(
+    // 	.clk        (clk        ),
+    //     .rst        (rst        ),
+    //     .stallreq   (stallreq_from_icache   ),
+    //     .cached     (1'b1     ),
+    //     .sram_en    (inst_sram_en    ),
+    //     .sram_wen   (inst_sram_wen   ),
+    //     .sram_addr  (inst_sram_addr  ),
+    //     .refresh    (icache_refresh    ),
+    //     .miss       (icache_miss       ),
+    //     .axi_raddr  (icache_raddr  ),
+    //     .write_back (icache_write_back ),
+    //     .axi_waddr  (icache_waddr  ),
+    //     .hit        (icache_hit        )
+    // );
 
-    cache_data u_icache_data(
+    cache_data_v2 u_icache_data(
     	.clk           (clk           ),
         .rst           (rst           ),
-        .write_back    (icache_write_back    ),
+        .write_back    (1'b0    ),
         .hit           (icache_hit           ),
+        .lru           (icache_lru           ),
         .cached        (1'b1        ),
         .sram_en       (inst_sram_en       ),
         .sram_wen      (inst_sram_wen      ),
@@ -203,6 +223,22 @@ module mycpu_core(
         .cacheline_new (icache_cacheline_new ),
         .cacheline_old (icache_cacheline_old )
     );
+    
+    // cache_data u_icache_data(
+    // 	.clk           (clk           ),
+    //     .rst           (rst           ),
+    //     .write_back    (1'b0    ),
+    //     .hit           (icache_hit           ),
+    //     .cached        (1'b1        ),
+    //     .sram_en       (inst_sram_en       ),
+    //     .sram_wen      (inst_sram_wen      ),
+    //     .sram_addr     (inst_sram_addr     ),
+    //     .sram_wdata    (inst_sram_wdata    ),
+    //     .sram_rdata    (inst_sram_rdata    ),
+    //     .refresh       (icache_refresh       ),
+    //     .cacheline_new (icache_cacheline_new ),
+    //     .cacheline_old (icache_cacheline_old )
+    // );
 
     wire [31:0] data_sram_addr_mmu;
     wire [31:0] dcache_temp_rdata;
@@ -213,8 +249,7 @@ module mycpu_core(
         .cache_v (dcache_cached )
     );
     
-    
-    cache_tag u_dcache_tag(
+    cache_tag_v2 u_dcache_tag(
     	.clk        (clk        ),
         .rst        (rst        ),
         .stallreq   (stallreq_from_dcache   ),
@@ -227,14 +262,31 @@ module mycpu_core(
         .axi_raddr  (dcache_raddr  ),
         .write_back (dcache_write_back ),
         .axi_waddr  (dcache_waddr  ),
-        .hit        (dcache_hit        )
+        .hit        (dcache_hit        ),
+        .lru        (dcache_lru        )
     );
     
-    cache_data u_dcache_data(
+    // cache_tag u_dcache_tag(
+    // 	.clk        (clk        ),
+    //     .rst        (rst        ),
+    //     .stallreq   (stallreq_from_dcache   ),
+    //     .cached     (dcache_cached     ),
+    //     .sram_en    (data_sram_en    ),
+    //     .sram_wen   (data_sram_wen   ),
+    //     .sram_addr  (data_sram_addr_mmu  ),
+    //     .refresh    (dcache_refresh    ),
+    //     .miss       (dcache_miss       ),
+    //     .axi_raddr  (dcache_raddr  ),
+    //     .write_back (dcache_write_back ),
+    //     .axi_waddr  (dcache_waddr  ),
+    //     .hit        (dcache_hit        )
+    // );
+    cache_data_v2 u_dcache_data(
     	.clk           (clk           ),
         .rst           (rst           ),
         .write_back    (dcache_write_back    ),
         .hit           (dcache_hit           ),
+        .lru           (dcache_lru           ),
         .cached        (dcache_cached        ),
         .sram_en       (data_sram_en       ),
         .sram_wen      (data_sram_wen      ),
@@ -245,6 +297,22 @@ module mycpu_core(
         .cacheline_new (dcache_cacheline_new ),
         .cacheline_old (dcache_cacheline_old )
     );
+    
+    // cache_data u_dcache_data(
+    // 	.clk           (clk           ),
+    //     .rst           (rst           ),
+    //     .write_back    (dcache_write_back    ),
+    //     .hit           (dcache_hit           ),
+    //     .cached        (dcache_cached        ),
+    //     .sram_en       (data_sram_en       ),
+    //     .sram_wen      (data_sram_wen      ),
+    //     .sram_addr     (data_sram_addr_mmu     ),
+    //     .sram_wdata    (data_sram_wdata    ),
+    //     .sram_rdata    (dcache_temp_rdata   ),
+    //     .refresh       (dcache_refresh       ),
+    //     .cacheline_new (dcache_cacheline_new ),
+    //     .cacheline_old (dcache_cacheline_old )
+    // );
     
     uncache_tag u_uncache_tag(
     	.clk       (clk       ),
@@ -303,6 +371,32 @@ module mycpu_core(
     assign ic_inst = rst ? 32'b0 
                    : ic_to_id_bus[32] ? inst_sram_rdata 
                    : 32'b0;
+    
+    reg branch_e_r;
+    reg [31:0] branch_target_addr_r;
+    wire branch_e;
+    wire [31:0] branch_target_addr;
+
+
+    always @ (posedge clk) begin
+        if (rst) begin
+            branch_e_r <= 1'b0;
+            branch_target_addr_r <= 32'b0;
+        end
+        else if (stall[0]==`NoStop) begin
+            branch_e_r <= 1'b0;
+            branch_target_addr_r <= 32'b0;
+        end
+        else if (~branch_e_r) begin
+            branch_e_r <= br_bus[32];
+            branch_target_addr_r <= br_bus[31:0];
+        end
+    end
+
+    assign branch_e = br_bus[32]|branch_e_r;
+    assign branch_target_addr = br_bus[32] ? br_bus[31:0]
+                              : branch_e_r ? branch_target_addr_r
+                              : 32'b0;
 
     pc u_pc(
     	.clk          (clk          ),
@@ -310,7 +404,7 @@ module mycpu_core(
         .stall        (stall        ),
         .flush        (flush        ),
         .new_pc       (new_pc       ),
-        .br_bus       (br_bus       ),
+        .br_bus       ({branch_e,branch_target_addr}       ),
         .pc_to_ic_bus (pc_to_ic_bus )
     );
     
@@ -320,7 +414,7 @@ module mycpu_core(
         .rst          (rst          ),
         .stall        (stall        ),
         .flush        (flush        ),
-        .br_e         (br_bus[32]   ),
+        .br_e         (branch_e   ),
         .pc_to_ic_bus (pc_to_ic_bus ),
         .ic_to_id_bus (ic_to_id_bus )
     );
@@ -336,7 +430,7 @@ module mycpu_core(
         .rst          (rst              ),
         .flush        (flush            ),
         .stall        (stall            ),
-        .br_e         (br_bus[32]       ),
+        .br_e         (branch_e       ),
         .stallreq     (stallreq         ),
         .ic_to_id_bus (ic_to_id_bus     ),
         .ic_inst      (ic_inst          ),

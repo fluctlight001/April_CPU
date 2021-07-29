@@ -201,14 +201,17 @@ module mem(
                 if (((cp0_cause[15:8] & cp0_status[15:8]) != 8'b0) && (cp0_status[1] == 1'b0) && (cp0_status[0] == 1'b1)) begin
                     excepttype_o <= 32'h00000001;         //interrupt
                 end
+                else if (excepttype_arr[16] == 1'b1) begin // ft_adel
+                    excepttype_o <= 32'h00000004;
+                end
+                else if (excepttype_arr[9] == 1'b1) begin // inst_invalid
+                    excepttype_o <= 32'h0000000a;
+                end
                 else if (excepttype_arr[8] == 1'b1) begin // syscall
                     excepttype_o <= 32'h00000008;
                 end
                 else if (excepttype_arr[13] == 1'b1) begin // break
                     excepttype_o <= 32'h00000009;
-                end
-                else if (excepttype_arr[9] == 1'b1) begin // inst_invalid
-                    excepttype_o <= 32'h0000000a;
                 end
                 else if (excepttype_arr[10] == 1'b1) begin // trap
                     excepttype_o <= 32'h0000000d;
@@ -223,9 +226,6 @@ module mem(
                     excepttype_o <= 32'h00000005;
                 end
                 else if (excepttype_arr[15] == 1'b1) begin // loadassert
-                    excepttype_o <= 32'h00000004;
-                end
-                else if (excepttype_arr[16] == 1'b1) begin // ft_adel
                     excepttype_o <= 32'h00000004;
                 end
             end

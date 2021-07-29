@@ -226,7 +226,7 @@ module mycpu_core(
         .cached        (1'b1        ),
         .sram_en       (inst_sram_en       ),
         .sram_wen      (inst_sram_wen      ),
-        .sram_addr     (inst_sram_addr     ),
+        .sram_addr     (inst_sram_addr_mmu     ),
         .sram_wdata    (inst_sram_wdata    ),
         .sram_rdata    (inst_sram_rdata    ),
         .refresh       (icache_refresh       ),

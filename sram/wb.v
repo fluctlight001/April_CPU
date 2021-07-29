@@ -50,10 +50,10 @@ module wb(
         else if (flush) begin
             mem_to_wb_bus_r <= `MEM_TO_WB_WD'b0;
         end
-        else if (stall[6] == `Stop && stall[7] == `NoStop) begin
+        else if (stall[7] == `Stop && stall[8] == `NoStop) begin
             mem_to_wb_bus_r <= `MEM_TO_WB_WD'b0;
         end
-        else if (stall[6] == `NoStop) begin
+        else if (stall[7] == `NoStop) begin
             mem_to_wb_bus_r <= mem_to_wb_bus;
         end
     end

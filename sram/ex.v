@@ -8,7 +8,7 @@ module ex (
 
     input wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
     
-    output wire [`EX_TO_DC_WD-1:0] ex_to_dc_bus,
+    output wire [`EX_TO_DT_WD-1:0] ex_to_dt_bus,
 
 
     // input wire [31:0] pc, inst,
@@ -37,11 +37,8 @@ module ex (
     // input wire is_in_delayslot_i,
 
     // data sram interface
-    output wire        data_sram_en   ,
-    output wire [ 3:0] data_sram_wen  ,
-    output wire [31:0] data_sram_addr ,
-    output wire [31:0] data_sram_wdata
-
+    
+    output wire [`DATA_SRAM_WD-1:0] ex_dt_sram_bus
 );
     wire [31:0] pc_i,inst_i;
     wire [11:0] br_op_i;
@@ -253,7 +250,7 @@ module ex (
             stop_store <= 1'b1;
         end
     end
-    assign ex_to_dc_bus = {
+    assign ex_to_dt_bus = {
         cp0_bus,        // 249:212
         is_in_delayslot,// 211
         bad_vaddr,      // 210:179
@@ -409,11 +406,21 @@ module ex (
             end
         endcase
     end
+    wire        data_sram_en   ;
+    wire [ 3:0] data_sram_wen  ;
+    wire [31:0] data_sram_addr ;
+    wire [31:0] data_sram_wdata;
     assign data_sram_en = (|excepttype_o)|stop_store ? 1'b0 : data_ram_en;
     assign data_sram_wen = data_sram_wen_r;
     assign data_sram_addr = alu_result; 
     assign data_sram_wdata = data_sram_wdata_r;
 
+    assign ex_dt_sram_bus = {
+        data_sram_en,   // 68
+        data_sram_wen,   // 67:64
+        data_sram_addr, // 63:32
+        data_sram_wdata // 31:0
+    };
 
 
 // hilo part

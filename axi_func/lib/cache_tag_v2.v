@@ -3,6 +3,7 @@
 module cache_tag_v2(
     input wire clk,
     input wire rst,
+    input wire flush,
     
     output wire stallreq,
 
@@ -355,12 +356,12 @@ module cache_tag_v2(
         hit_way1,
         hit_way0
     };
-    assign hit_way0 = cached_v & sram_en & ({1'b1,tag} == tag_way0[index]);
-    assign hit_way1 = cached_v & sram_en & ({1'b1,tag} == tag_way1[index]);
-    assign miss = cached_v & sram_en & ~(hit_way0|hit_way1);
+    assign hit_way0 = ~flush & cached_v & sram_en & ({1'b1,tag} == tag_way0[index]);
+    assign hit_way1 = ~flush & cached_v & sram_en & ({1'b1,tag} == tag_way1[index]);
+    assign miss = cached_v & sram_en & ~(hit_way0|hit_way1) & ~flush;
     assign stallreq = miss;
     assign axi_raddr = cached_v ? {sram_addr[31:5],5'b0} : sram_addr;
-    assign write_back = lru ? write_back_way1 : write_back_way0;
+    assign write_back = flush ? 1'b0 : lru ? write_back_way1 : write_back_way0;
     assign write_back_way0 = cached_v & sram_en & miss & tag_way0[index][`TAG_WIDTH-1];
     assign write_back_way1 = cached_v & sram_en & miss & tag_way1[index][`TAG_WIDTH-1];
     assign axi_waddr = lru_r[index] ? axi_waddr_way1 : axi_waddr_way0;

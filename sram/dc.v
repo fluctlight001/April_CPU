@@ -5,7 +5,7 @@ module dc(
     input wire flush,
     input wire [`StallBus] stall,
 
-    input wire [`EX_TO_DC_WD-1:0] ex_to_dc_bus,
+    input wire [`DT_TO_DC_WD-1:0] dt_to_dc_bus,
 
     output reg [`DC_TO_MEM_WD-1:0] dc_to_mem_bus
 );
@@ -18,11 +18,11 @@ module dc(
         else if (flush) begin
             dc_to_mem_bus <= `DC_TO_MEM_WD'b0;
         end
-        else if (stall[4] == `Stop && stall[5] == `NoStop) begin
+        else if (stall[5] == `Stop && stall[6] == `NoStop) begin
             dc_to_mem_bus <= `DC_TO_MEM_WD'b0;
         end
-        else if (stall[4] == `NoStop) begin
-            dc_to_mem_bus <= ex_to_dc_bus;
+        else if (stall[5] == `NoStop) begin
+            dc_to_mem_bus <= dt_to_dc_bus;
         end
     end
 

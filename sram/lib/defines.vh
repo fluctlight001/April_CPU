@@ -127,7 +127,7 @@
 `define ChipDisable 1'b0
 `define Cache 1'b1
 `define UnCache 1'b0
-`define StallBus 7:0
+`define StallBus 8:0
 
 //指令存储器inst_rom
 `define InstAddrBus 31:0
@@ -165,10 +165,12 @@
 `define PC_TO_IC_WD 65
 `define IC_TO_ID_WD 65
 `define ID_TO_EX_WD 218
-`define EX_TO_DC_WD 250
+`define EX_TO_DT_WD 250
+`define DT_TO_DC_WD 250
 `define DC_TO_MEM_WD 250
 `define MEM_TO_WB_WD 271
 `define BR_WD 33
+`define DATA_SRAM_WD 69
 
 //CP0寄存器地址
 `define CP0_REG_COUNT    5'b01001        //可读写

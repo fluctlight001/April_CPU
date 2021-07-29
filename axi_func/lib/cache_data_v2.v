@@ -235,5 +235,5 @@ module cache_data_v2(
         rdata_way1[1],
         rdata_way1[0]
     };
-    assign cacheline_old = lru ? cacheline_old_way1 : cacheline_old_way0;
+    assign cacheline_old = lru_r ? cacheline_old_way1 : cacheline_old_way0;
 endmodule

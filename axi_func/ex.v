@@ -461,7 +461,8 @@ module ex (
 
     wire div_ready_i;
     reg stallreq_for_div;
-    assign stallreq_for_ex = stallreq_for_div;
+    reg stallreq_for_mul;
+    assign stallreq_for_ex = stallreq_for_div | stallreq_for_mul;
 
     reg [`RegBus] div_opdata1_o;
     reg [`RegBus] div_opdata2_o;
@@ -478,6 +479,36 @@ module ex (
         .result     (mul_result     )
     );
     
+    reg cnt;
+    reg next_cnt;
+    
+    always @ (posedge clk) begin
+        if (rst) begin
+           cnt <= 1'b0; 
+        end
+        else begin
+           cnt <= next_cnt; 
+        end
+    end
+
+    always @ (*) begin
+        if (rst) begin
+            stallreq_for_mul <= 1'b0;
+            next_cnt <= 1'b0;
+        end
+        else if((inst_mult|inst_multu)&~cnt) begin
+            stallreq_for_mul <= 1'b1;
+            next_cnt <= 1'b1;
+        end
+        else if((inst_mult|inst_multu)&cnt) begin
+            stallreq_for_mul <= 1'b0;
+            next_cnt <= 1'b0;
+        end
+        else begin
+           stallreq_for_mul <= 1'b0;
+           next_cnt <= 1'b0; 
+        end
+    end
 
 // DIV part
     div u_div(

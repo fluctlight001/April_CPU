@@ -376,9 +376,7 @@ module mycpu_core(
     assign {
         inst_sram_en,
         inst_sram_addr
-    } = rst ? 33'b0 
-    //   : flush ? 33'b0 
-      : pc_to_ic_bus[32:0];
+    } = pc_to_ic_bus[32:0];
     
 
     wire [`InstBus] ic_inst;

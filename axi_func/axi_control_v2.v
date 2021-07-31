@@ -196,13 +196,11 @@ module axi_control_v2(
                     end
                 end
                 stage[4]:begin
-                    if (!rlast) begin
-                        if (rvalid) begin
-                            icache_rdata_buffer[icache_offset*32+:32] <= rdata;
-                            icache_offset <= icache_offset + 1'b1;
-                        end
+                    if (!rlast&rvalid) begin
+                        icache_rdata_buffer[icache_offset*32+:32] <= rdata;
+                        icache_offset <= icache_offset + 1'b1;
                     end
-                    else begin
+                    else if(rlast&rvalid) begin
                         icache_rdata_buffer[icache_offset*32+:32] <= rdata;
                         rready <= 1'b0;
                         stage <= stage << 1;
@@ -240,13 +238,11 @@ module axi_control_v2(
                     end
                 end
                 stage[7]:begin
-                    if (!rlast) begin
-                        if (rvalid) begin
-                            dcache_rdata_buffer[dcache_offset*32+:32] <= rdata;
-                            dcache_offset <= dcache_offset + 1'b1;
-                        end
+                    if (!rlast&rvalid) begin
+                        dcache_rdata_buffer[dcache_offset*32+:32] <= rdata;
+                        dcache_offset <= dcache_offset + 1'b1;
                     end
-                    else begin
+                    else if (rlast&rvalid) begin
                         dcache_rdata_buffer[dcache_offset*32+:32] <= rdata;
                         rready <= 1'b0;
                         stage <= {1'b0,1'b1,10'b0};

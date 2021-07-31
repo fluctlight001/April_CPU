@@ -1,6 +1,6 @@
 `include "defines.vh"
-
-module cache_tag_v2(
+// 单行16条的版本
+module cache_tag_v5(
     input wire clk,
     input wire rst,
     input wire flush,
@@ -31,8 +31,8 @@ module cache_tag_v2(
     reg [`TAG_WIDTH-1:0] tag_way1 [`INDEX_WIDTH-1:0];
     reg [`INDEX_WIDTH-1:0] lru_r;
     wire [`TAG_WIDTH-2:0] tag;
-    wire [6:0] index;
-    wire [4:0] offset;
+    wire [5:0] index;
+    wire [5:0] offset;
     wire cached_v;
     // wire [`TAG_WIDTH-1:0] tag_ram_out;
 
@@ -142,70 +142,6 @@ module cache_tag_v2(
             tag_way0[ 61] <= 21'b0;
             tag_way0[ 62] <= 21'b0;
             tag_way0[ 63] <= 21'b0;
-            tag_way0[ 64] <= 21'b0;
-            tag_way0[ 65] <= 21'b0;
-            tag_way0[ 66] <= 21'b0;
-            tag_way0[ 67] <= 21'b0;
-            tag_way0[ 68] <= 21'b0;
-            tag_way0[ 69] <= 21'b0;
-            tag_way0[ 70] <= 21'b0;
-            tag_way0[ 71] <= 21'b0;
-            tag_way0[ 72] <= 21'b0;
-            tag_way0[ 73] <= 21'b0;
-            tag_way0[ 74] <= 21'b0;
-            tag_way0[ 75] <= 21'b0;
-            tag_way0[ 76] <= 21'b0;
-            tag_way0[ 77] <= 21'b0;
-            tag_way0[ 78] <= 21'b0;
-            tag_way0[ 79] <= 21'b0;
-            tag_way0[ 80] <= 21'b0;
-            tag_way0[ 81] <= 21'b0;
-            tag_way0[ 82] <= 21'b0;
-            tag_way0[ 83] <= 21'b0;
-            tag_way0[ 84] <= 21'b0;
-            tag_way0[ 85] <= 21'b0;
-            tag_way0[ 86] <= 21'b0;
-            tag_way0[ 87] <= 21'b0;
-            tag_way0[ 88] <= 21'b0;
-            tag_way0[ 89] <= 21'b0;
-            tag_way0[ 90] <= 21'b0;
-            tag_way0[ 91] <= 21'b0;
-            tag_way0[ 92] <= 21'b0;
-            tag_way0[ 93] <= 21'b0;
-            tag_way0[ 94] <= 21'b0;
-            tag_way0[ 95] <= 21'b0;
-            tag_way0[ 96] <= 21'b0;
-            tag_way0[ 97] <= 21'b0;
-            tag_way0[ 98] <= 21'b0;
-            tag_way0[ 99] <= 21'b0;
-            tag_way0[100] <= 21'b0;
-            tag_way0[101] <= 21'b0;
-            tag_way0[102] <= 21'b0;
-            tag_way0[103] <= 21'b0;
-            tag_way0[104] <= 21'b0;
-            tag_way0[105] <= 21'b0;
-            tag_way0[106] <= 21'b0;
-            tag_way0[107] <= 21'b0;
-            tag_way0[108] <= 21'b0;
-            tag_way0[109] <= 21'b0;
-            tag_way0[110] <= 21'b0;
-            tag_way0[111] <= 21'b0;
-            tag_way0[112] <= 21'b0;
-            tag_way0[113] <= 21'b0;
-            tag_way0[114] <= 21'b0;
-            tag_way0[115] <= 21'b0;
-            tag_way0[116] <= 21'b0;
-            tag_way0[117] <= 21'b0;
-            tag_way0[118] <= 21'b0;
-            tag_way0[119] <= 21'b0;
-            tag_way0[120] <= 21'b0;
-            tag_way0[121] <= 21'b0;
-            tag_way0[122] <= 21'b0;
-            tag_way0[123] <= 21'b0;
-            tag_way0[124] <= 21'b0;
-            tag_way0[125] <= 21'b0;
-            tag_way0[126] <= 21'b0;
-            tag_way0[127] <= 21'b0;
         end
         else if (refresh&(~lru_r[index])) begin
             tag_way0[index] <= {cached_v,tag};
@@ -279,71 +215,6 @@ module cache_tag_v2(
             tag_way1[ 61] <= 21'b0;
             tag_way1[ 62] <= 21'b0;
             tag_way1[ 63] <= 21'b0;
-            tag_way1[ 64] <= 21'b0;
-            tag_way1[ 65] <= 21'b0;
-            tag_way1[ 66] <= 21'b0;
-            tag_way1[ 67] <= 21'b0;
-            tag_way1[ 68] <= 21'b0;
-            tag_way1[ 69] <= 21'b0;
-            tag_way1[ 70] <= 21'b0;
-            tag_way1[ 71] <= 21'b0;
-            tag_way1[ 72] <= 21'b0;
-            tag_way1[ 73] <= 21'b0;
-            tag_way1[ 74] <= 21'b0;
-            tag_way1[ 75] <= 21'b0;
-            tag_way1[ 76] <= 21'b0;
-            tag_way1[ 77] <= 21'b0;
-            tag_way1[ 78] <= 21'b0;
-            tag_way1[ 79] <= 21'b0;
-            tag_way1[ 80] <= 21'b0;
-            tag_way1[ 81] <= 21'b0;
-            tag_way1[ 82] <= 21'b0;
-            tag_way1[ 83] <= 21'b0;
-            tag_way1[ 84] <= 21'b0;
-            tag_way1[ 85] <= 21'b0;
-            tag_way1[ 86] <= 21'b0;
-            tag_way1[ 87] <= 21'b0;
-            tag_way1[ 88] <= 21'b0;
-            tag_way1[ 89] <= 21'b0;
-            tag_way1[ 90] <= 21'b0;
-            tag_way1[ 91] <= 21'b0;
-            tag_way1[ 92] <= 21'b0;
-            tag_way1[ 93] <= 21'b0;
-            tag_way1[ 94] <= 21'b0;
-            tag_way1[ 95] <= 21'b0;
-            tag_way1[ 96] <= 21'b0;
-            tag_way1[ 97] <= 21'b0;
-            tag_way1[ 98] <= 21'b0;
-            tag_way1[ 99] <= 21'b0;
-            tag_way1[100] <= 21'b0;
-            tag_way1[101] <= 21'b0;
-            tag_way1[102] <= 21'b0;
-            tag_way1[103] <= 21'b0;
-            tag_way1[104] <= 21'b0;
-            tag_way1[105] <= 21'b0;
-            tag_way1[106] <= 21'b0;
-            tag_way1[107] <= 21'b0;
-            tag_way1[108] <= 21'b0;
-            tag_way1[109] <= 21'b0;
-            tag_way1[110] <= 21'b0;
-            tag_way1[111] <= 21'b0;
-            tag_way1[112] <= 21'b0;
-            tag_way1[113] <= 21'b0;
-            tag_way1[114] <= 21'b0;
-            tag_way1[115] <= 21'b0;
-            tag_way1[116] <= 21'b0;
-            tag_way1[117] <= 21'b0;
-            tag_way1[118] <= 21'b0;
-            tag_way1[119] <= 21'b0;
-            tag_way1[120] <= 21'b0;
-            tag_way1[121] <= 21'b0;
-            tag_way1[122] <= 21'b0;
-            tag_way1[123] <= 21'b0;
-            tag_way1[124] <= 21'b0;
-            tag_way1[125] <= 21'b0;
-            tag_way1[126] <= 21'b0;
-            tag_way1[127] <= 21'b0;
-
         end
         else if (refresh&lru_r[index]) begin
             tag_way1[index] <= {cached_v,tag};
@@ -360,7 +231,7 @@ module cache_tag_v2(
     assign hit_way1 = ~flush & cached_v & sram_en & ({1'b1,tag} == tag_way1[index]);
     assign miss = cached_v & sram_en & ~(hit_way0|hit_way1) & ~flush;
     assign stallreq = miss;
-    assign axi_raddr = cached_v ? {sram_addr[31:5],5'b0} : sram_addr;
+    assign axi_raddr = cached_v ? {sram_addr[31:6],6'b0} : sram_addr;
     assign write_back = flush ? 1'b0 : lru ? write_back_way1 : write_back_way0;
     assign write_back_way0 = cached_v & sram_en & miss & tag_way0[index][`TAG_WIDTH-1];
     assign write_back_way1 = cached_v & sram_en & miss & tag_way1[index][`TAG_WIDTH-1];
@@ -368,11 +239,11 @@ module cache_tag_v2(
     assign axi_waddr_way0 = {
         tag_way0[index][`TAG_WIDTH-2:0],
         index,
-        5'b0
+        6'b0
     };
     assign axi_waddr_way1 = {
         tag_way1[index][`TAG_WIDTH-2:0],
         index,
-        5'b0
+        6'b0
     };
 endmodule

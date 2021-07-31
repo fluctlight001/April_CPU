@@ -110,7 +110,7 @@ module mycpu_core(
     wire stallreq_from_dcache;
     wire stallreq_from_uncache;
 
-    axi_control_v2 u_axi_control(
+    axi_control_v5 u_axi_control(
     	.clk                  (clk                  ),
         .rstn                 (~rst                 ),
 
@@ -183,7 +183,7 @@ module mycpu_core(
     );
     
 
-    cache_tag_v2 u_icache_tag(
+    cache_tag_v5 u_icache_tag(
     	.clk        (clk        ),
         .rst        (rst        ),
         .flush      (flush      ),
@@ -217,7 +217,7 @@ module mycpu_core(
     //     .hit        (icache_hit        )
     // );
 
-    cache_data_v2 u_icache_data(
+    cache_data_v5 u_icache_data(
     	.clk           (clk           ),
         .rst           (rst           ),
         .write_back    (1'b0    ),
@@ -259,7 +259,7 @@ module mycpu_core(
         .cache_v (dcache_cached )
     );
     
-    cache_tag_v2 u_dcache_tag(
+    cache_tag_v5 u_dcache_tag(
     	.clk        (clk        ),
         .rst        (rst        ),
         .flush      (flush      ),
@@ -292,7 +292,7 @@ module mycpu_core(
     //     .axi_waddr  (dcache_waddr  ),
     //     .hit        (dcache_hit        )
     // );
-    cache_data_v2 u_dcache_data(
+    cache_data_v5 u_dcache_data(
     	.clk           (clk           ),
         .rst           (rst           ),
         .write_back    (dcache_write_back    ),

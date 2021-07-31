@@ -6,7 +6,7 @@ module decoder (
     input wire [`InstBus] inst_i,
 
     output wire [11:0] br_op,
-    output wire [7:0] hilo_op,
+    output wire [8:0] hilo_op,
     output wire [4:0] mem_op,
 
     output wire [2:0] sel_alu_src1, 
@@ -69,6 +69,7 @@ module decoder (
     wire inst_lw,   inst_sb,    inst_sh,    inst_sw;
     wire inst_break,    inst_syscall;
     wire inst_eret, inst_mfc0,  inst_mtc0;
+    wire inst_mul;
 
 
     wire op_add, op_sub, op_slt, op_sltu;
@@ -85,7 +86,7 @@ module decoder (
     assign excepttype_is_instinvalid = ~(inst_add | inst_addi | inst_addu | inst_addiu
                                         | inst_sub | inst_subu | inst_slt | inst_slti 
                                         | inst_sltu | inst_sltiu | inst_div | inst_divu
-                                        | inst_mult | inst_multu | inst_and | inst_andi 
+                                        | inst_mul | inst_mult | inst_multu | inst_and | inst_andi 
                                         | inst_lui | inst_nor | inst_or | inst_ori 
                                         | inst_xor | inst_xori | inst_sll | inst_sllv
                                         | inst_sra | inst_srav | inst_srl | inst_srlv
@@ -136,6 +137,7 @@ module decoder (
 
     assign inst_div     = op_d[6'b00_0000] & func_d[6'b01_1010];
     assign inst_divu    = op_d[6'b00_0000] & func_d[6'b01_1011];
+    assign inst_mul     = op_d[6'b01_1100] & func_d[6'b00_0010];
     assign inst_mult    = op_d[6'b00_0000] & func_d[6'b01_1000];
     assign inst_multu   = op_d[6'b00_0000] & func_d[6'b01_1001];
     
@@ -194,7 +196,7 @@ module decoder (
     assign sel_alu_src1[0] = inst_add | inst_addi | inst_addu | inst_addiu 
                            | inst_sub | inst_subu | inst_slt | inst_slti 
                            | inst_sltu | inst_sltiu | inst_div | inst_divu 
-                           | inst_mult | inst_multu | inst_and | inst_andi 
+                           | inst_mul | inst_mult | inst_multu | inst_and | inst_andi 
                            | inst_nor | inst_or | inst_ori | inst_xor 
                            | inst_xori | inst_sllv | inst_srav | inst_srlv
                            | inst_mthi | inst_mtlo 
@@ -209,7 +211,7 @@ module decoder (
     // rt to reg2
     assign sel_alu_src2[0] = inst_add | inst_addu | inst_sub | inst_subu 
                            | inst_slt | inst_sltu | inst_div | inst_divu 
-                           | inst_mult | inst_multu | inst_and | inst_nor 
+                           | inst_mul | inst_mult | inst_multu | inst_and | inst_nor 
                            | inst_or | inst_xor | inst_sllv | inst_sll 
                            | inst_srav | inst_sra | inst_srlv | inst_srl;
     // imm_sign_extend to reg2
@@ -262,12 +264,12 @@ module decoder (
     assign rf_we = inst_add | inst_addu | inst_addi | inst_addiu | inst_sub | inst_subu | inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu
                  | inst_jal | inst_bltzal | inst_bgezal | inst_jalr | inst_slt | inst_slti | inst_sltu | inst_sltiu | inst_sllv | inst_sll 
                  | inst_srlv | inst_srl | inst_srav | inst_sra | inst_lui | inst_and | inst_andi
-                 | inst_or | inst_ori | inst_xor | inst_xori | inst_nor | inst_mfhi | inst_mflo | inst_mfc0;
+                 | inst_or | inst_ori | inst_xor | inst_xori | inst_nor | inst_mfhi | inst_mflo | inst_mfc0 | inst_mul;
 
     // store in [rd]
     assign sel_rf_dst[0] = inst_add | inst_addu | inst_sub | inst_subu | inst_slt | inst_sltu 
                          | inst_sllv | inst_sll | inst_srlv | inst_srl | inst_srav | inst_sra | inst_and 
-                         | inst_or | inst_xor | inst_nor | inst_mfhi | inst_mflo;
+                         | inst_or | inst_xor | inst_nor | inst_mfhi | inst_mflo | inst_mul;
     // store in [rt] 
     assign sel_rf_dst[1] = inst_addi | inst_addiu | inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lui | inst_ori | inst_andi | inst_xori | inst_slti | inst_sltiu | inst_mfc0;
     // store in [31]
@@ -305,7 +307,8 @@ module decoder (
 // hilo part
     assign hilo_op = {
         inst_mfhi, inst_mflo, inst_mthi, inst_mtlo,
-        inst_mult, inst_multu, inst_div, inst_divu
+        inst_mult, inst_multu, inst_div, inst_divu,
+        inst_mul
     };
     
 

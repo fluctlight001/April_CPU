@@ -41,7 +41,7 @@ module id (
     wire [2:0] sel_alu_src1;
     wire [3:0] sel_alu_src2;
     wire [11:0] br_op;
-    wire [7:0] hilo_op;
+    wire [8:0] hilo_op;
     wire [4:0] mem_op;
     wire [13:0] alu_op;
     wire sel_load_zero_extend;
@@ -57,9 +57,9 @@ module id (
     assign excepttype_o = {excepttype_decoder[31:17],excepttype_arr[16],excepttype_decoder[15:0]};
 
     assign id_to_ex_bus = {
-        excepttype_o,   // 217:186
-        mem_op,         // 185:181
-        hilo_op,        // 180:173
+        excepttype_o,   // 218:187
+        mem_op,         // 186:180
+        hilo_op,        // 181:173
         br_op,          // 172:161
         id_pc,          // 160:129
         id_inst,        // 128:97

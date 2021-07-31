@@ -42,7 +42,7 @@ module ex (
 );
     wire [31:0] pc_i,inst_i;
     wire [11:0] br_op_i;
-    wire [7:0] hilo_op_i;
+    wire [8:0] hilo_op_i;
     wire [4:0] mem_op_i;
     wire [13:0] alu_op_i;
     wire [2:0] sel_alu_src1_i;
@@ -57,9 +57,9 @@ module ex (
     wire [31:0] excepttype_i;
 
     assign {
-        excepttype_i,   // 217:186
-        mem_op_i,       // 185:181
-        hilo_op_i,      // 180:173
+        excepttype_i,   // 218:187
+        mem_op_i,       // 186:182
+        hilo_op_i,      // 181:173
         br_op_i,        // 172:161
         pc_i,           // 160:129
         inst_i,         // 128:97
@@ -77,7 +77,7 @@ module ex (
 
     reg [31:0] pc,inst;
     reg [11:0] br_op;
-    reg [7:0] hilo_op;
+    reg [8:0] hilo_op;
     reg [4:0] mem_op;
     reg [13:0] alu_op;
     reg [2:0] sel_alu_src1;
@@ -103,7 +103,7 @@ module ex (
             pc <= 32'b0;
             inst <= 32'b0;
             br_op <= 12'b0;
-            hilo_op <= 8'b0;
+            hilo_op <= 9'b0;
             mem_op <= 5'b0;
             alu_op <= 14'b0;
             sel_alu_src1 <= 3'b0;
@@ -123,7 +123,7 @@ module ex (
             pc <= 32'b0;
             inst <= 32'b0;
             br_op <= 12'b0;
-            hilo_op <= 8'b0;
+            hilo_op <= 9'b0;
             mem_op <= 5'b0;
             alu_op <= 14'b0;
             sel_alu_src1 <= 3'b0;
@@ -143,7 +143,7 @@ module ex (
             pc <= 32'b0;
             inst <= 32'b0;
             br_op <= 12'b0;
-            hilo_op <= 8'b0;
+            hilo_op <= 9'b0;
             mem_op <= 5'b0;
             alu_op <= 14'b0;
             sel_alu_src1 <= 3'b0;
@@ -234,9 +234,12 @@ module ex (
     wire cp0_op;
     wire [37:0] cp0_bus;
     reg stop_store;
+    wire [63:0] mul_result;
+    wire inst_mul;
     
     assign ex_result = alu_op[12] ? hilo_result :
-                       cp0_op ? cp0_reg_data_i : alu_result;
+                       cp0_op ? cp0_reg_data_i :
+                       inst_mul ? mul_result[31:0] : alu_result;
     assign excepttype_o = {excepttype_arr[31:16],loadassert,storeassert,excepttype_arr[13:12],ovassert,1'b0,excepttype_arr[9:8],8'b0};
     
     always @ (posedge clk) begin
@@ -426,18 +429,20 @@ module ex (
 // hilo part
     wire inst_mfhi, inst_mflo,  inst_mthi,  inst_mtlo;
     wire inst_mult, inst_multu, inst_div,   inst_divu;
+    // wire inst_mul;
 
     assign {
         inst_mfhi, inst_mflo, inst_mthi, inst_mtlo,
-        inst_mult, inst_multu, inst_div, inst_divu
+        inst_mult, inst_multu, inst_div, inst_divu,
+        inst_mul
     } = hilo_op;
 
     wire hi_we, lo_we;
     wire [31:0] hi_o, lo_o;
     wire [63:0] div_result;
     wire [63:0] mod_result;
-    wire [63:0] mul_result;
-    wire op_mul = inst_mult | inst_multu;
+    // wire [63:0] mul_result;
+    wire op_mul = inst_mul | inst_mult | inst_multu;
     wire op_div = inst_div | inst_divu;
 
     assign hi_we = inst_mthi | inst_div | inst_divu | inst_mult | inst_multu;
@@ -478,7 +483,7 @@ module ex (
         .inb        (rf_rdata2_bp        ),
         .result     (mul_result     )
     );
-
+    
     reg cnt;
     reg next_cnt;
     
@@ -509,7 +514,6 @@ module ex (
            next_cnt <= 1'b0; 
         end
     end
-    
 
 // DIV part
     div u_div(

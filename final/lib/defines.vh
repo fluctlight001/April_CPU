@@ -171,14 +171,6 @@
 `define MEM_TO_WB_WD 271
 `define BR_WD 33
 `define DATA_SRAM_WD 69
-// `define BHR_WD 4
-// `define EX_BPU_WD 70
-
-// 分支预测器 状态机
-`define StronglyToken 2'b11
-`define WeaklyToken 2'b10
-`define WeaklyNotToken 2'b00
-`define StronglyNotToken 2'b01
 
 //CP0寄存器地址
 `define CP0_REG_COUNT       5'b01001        //可读写

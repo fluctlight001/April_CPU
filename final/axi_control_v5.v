@@ -1,5 +1,5 @@
 `include "lib/defines.vh"
-`define STAGE_WIDTH 12
+`define STAGE_WIDTH 14
 // `define TAG_WIDTH 20
 // `define INDEX_WIDTH 128 // 块高
 // `define CACHELINE_WIDTH 256 // 块宽
@@ -17,6 +17,14 @@ module axi_control_v5(
     input wire [`CACHELINE_WIDTH-1:0] icache_cacheline_old, // wback
 
     output reg icache_refresh, 
+
+    // unicache  interface
+    input wire unicache_en,
+    input wire [3:0] unicache_wen,
+    input wire [31:0] unicache_addr,
+    input wire [31:0] unicache_wdata,
+    output reg [31:0] unicache_rdata,
+    output reg unicache_refresh,
 
     // dcache interface
     input wire dcache_ren, // miss
@@ -98,6 +106,12 @@ module axi_control_v5(
     reg dcache_ren_buffer;
     reg icache_wen_buffer;
     reg dcache_wen_buffer;
+
+    reg unicache_en_buffer;
+    reg [3:0] unicache_wen_buffer;
+    reg [31:0] unicache_addr_buffer;
+    reg [31:0] unicache_wdata_buffer; 
+    reg [31:0] unicache_rdata_buffer;
     
     reg uncache_en_buffer;
     reg [3:0] uncache_wen_buffer;
@@ -129,6 +143,8 @@ module axi_control_v5(
             icache_cacheline_new <= `CACHELINE_WIDTH'b0;
             dcache_cacheline_new <= `CACHELINE_WIDTH'b0;
 
+            unicache_refresh <= 1'b0;
+            unicache_rdata <= 32'b0;
             uncache_refresh <= 1'b0;
             uncache_rdata <= 32'b0;
         end
@@ -137,6 +153,7 @@ module axi_control_v5(
                 stage[0]:begin
                     icache_refresh <= 1'b0;
                     dcache_refresh <= 1'b0;
+                    unicache_refresh <= 1'b0;
                     uncache_refresh <= 1'b0;
 
                     icache_ren_buffer <= icache_ren;
@@ -149,6 +166,11 @@ module axi_control_v5(
                     dcache_wen_buffer <= dcache_wen;
                     dcache_waddr_buffer <= dcache_waddr;
 
+                    unicache_en_buffer <= unicache_en;
+                    unicache_wen_buffer <= unicache_wen;
+                    unicache_addr_buffer <= unicache_addr;
+                    unicache_wdata_buffer <= unicache_wdata;
+
                     uncache_en_buffer <= uncache_en;
                     uncache_wen_buffer <= uncache_wen;
                     uncache_addr_buffer <= uncache_addr;
@@ -157,7 +179,7 @@ module axi_control_v5(
                     if (dcache_wen|(uncache_en&((|uncache_wen)))) begin
                         stage <= stage << 1;    
                     end
-                    else if (icache_ren|dcache_ren|(uncache_en&~(|uncache_wen))) begin
+                    else if (icache_ren|unicache_en|dcache_ren|(uncache_en&~(|uncache_wen))) begin
                         stage <= stage << 2;
                     end
                 end
@@ -165,11 +187,11 @@ module axi_control_v5(
                     icache_wdata_buffer <= icache_cacheline_old;
                     dcache_wdata_buffer <= dcache_cacheline_old;
                     // uncache_wdata_buffer <= uncache_wdata;
-                    if (icache_ren_buffer|dcache_ren_buffer|(uncache_en_buffer&~(|uncache_wen_buffer))) begin
+                    if (icache_ren_buffer|unicache_en_buffer|dcache_ren_buffer|(uncache_en_buffer&~(|uncache_wen_buffer))) begin
                         stage <= stage << 1;
                     end
                     else begin
-                        stage <= {1'b0,1'b1,10'b0};
+                        stage <= {1'b0,1'b1,12'b0};
                     end
                 end
                 stage[2]:begin
@@ -182,8 +204,17 @@ module axi_control_v5(
 
                         stage <= stage << 1;
                     end
-                    else begin
+                    else if (unicache_en_buffer) begin
+                        arid <= 4'b0;
+                        araddr <= unicache_addr_buffer;
+                        arlen <= 4'h0;
+                        arsize <= 3'b010;
+                        arvalid <= 1'b1;
+
                         stage <= stage << 3;
+                    end
+                    else begin
+                        stage <= stage << 5;
                     end
                 end
                 stage[3]:begin
@@ -203,10 +234,25 @@ module axi_control_v5(
                     else if(rlast&rvalid) begin
                         icache_rdata_buffer[icache_offset*32+:32] <= rdata;
                         rready <= 1'b0;
-                        stage <= stage << 1;
+                        stage <= stage << 3;
                     end
                 end
                 stage[5]:begin
+                    if (arready) begin
+                        arvalid <= 1'b0;
+                        araddr <= 32'b0;
+                        rready <= 1'b1;
+                        stage <= stage << 1;
+                    end
+                end
+                stage[6]:begin
+                    if (rvalid) begin
+                        unicache_rdata_buffer <= rdata;
+                        rready <= 1'b0;
+                        stage <= stage << 1;
+                    end
+                end
+                stage[7]:begin
                     if (dcache_ren_buffer) begin
                         arid <= 4'b1;
                         araddr <= dcache_raddr_buffer;
@@ -225,10 +271,10 @@ module axi_control_v5(
                         stage <= stage << 3;
                     end
                     else begin
-                        stage <= {1'b0,1'b1,10'b0};
+                        stage <= {1'b0,1'b1,12'b0};
                     end
                 end
-                stage[6]:begin
+                stage[8]:begin
                     if (arready) begin
                         arvalid <= 1'b0;
                         araddr <= 32'b0;
@@ -237,7 +283,7 @@ module axi_control_v5(
                         stage <= stage << 1;
                     end
                 end
-                stage[7]:begin
+                stage[9]:begin
                     if (!rlast&rvalid) begin
                         dcache_rdata_buffer[dcache_offset*32+:32] <= rdata;
                         dcache_offset <= dcache_offset + 1'b1;
@@ -245,10 +291,10 @@ module axi_control_v5(
                     else if (rlast&rvalid) begin
                         dcache_rdata_buffer[dcache_offset*32+:32] <= rdata;
                         rready <= 1'b0;
-                        stage <= {1'b0,1'b1,10'b0};
+                        stage <= {1'b0,1'b1,12'b0};
                     end
                 end
-                stage[8]:begin
+                stage[10]:begin
                     if (arready) begin
                         arvalid <= 1'b0;
                         araddr <= 32'b0;
@@ -256,19 +302,19 @@ module axi_control_v5(
                         stage <= stage << 1;
                     end
                 end
-                stage[9]:begin
+                stage[11]:begin
                     if (rvalid) begin
                         uncache_rdata_buffer <= rdata;
                         rready <= 1'b0;
-                        stage <= {1'b0,1'b1,10'b0};
+                        stage <= {1'b0,1'b1,12'b0};
                     end
                 end
-                stage[10]:begin
+                stage[12]:begin
                     if (stage_w[10]|stage_w[0]) begin
                         stage <= stage << 1;
                     end
                 end
-                stage[11]:begin
+                stage[13]:begin
                     if (icache_ren_buffer) begin
                         icache_refresh <= 1'b1;
                         icache_cacheline_new <= icache_rdata_buffer;
@@ -277,6 +323,10 @@ module axi_control_v5(
                     if (dcache_ren_buffer) begin
                         dcache_refresh <= 1'b1;
                         dcache_cacheline_new <= dcache_rdata_buffer;
+                    end
+                    if (unicache_en_buffer) begin
+                        unicache_refresh <= 1'b1;
+                        unicache_rdata <= unicache_rdata_buffer;
                     end
                     if (uncache_en_buffer) begin
                         uncache_refresh <= 1'b1;   
@@ -288,6 +338,7 @@ module axi_control_v5(
                     stage <= `STAGE_WIDTH'b1;
                     icache_refresh <= 1'b0;
                     dcache_refresh <= 1'b0;
+                    unicache_refresh <= 1'b0;
                     uncache_refresh <= 1'b0;
                 end
             endcase
@@ -368,24 +419,27 @@ module axi_control_v5(
                         wdata <= dcache_wdata_buffer[dcache_offset_w*32+:32];
                         wvalid <= 1'b1;
                         wlast <= dcache_offset_w == 4'b1111 ? 1'b1 : 1'b0;
-                        dcache_offset_w <= dcache_offset_w + 1'b1;
-                        if (dcache_offset_w == 4'b1111) begin
-                            stage_w <= stage_w << 1;
-                        end
+                        stage_w <= stage_w << 1;
                     end
                 end
                 stage_w[2]:begin
                     if (wready) begin
                         wdata <= 32'b0;
-                        wvalid <= 1'b0;    
-                        wlast <= 1'b0;
-                        stage_w <= stage_w << 1;
+                        wvalid <= 1'b0;
+                        if (dcache_offset_w == 4'b1111) begin
+                            stage_w <= stage_w << 1;
+                            wlast <= 1'b0;
+                        end
+                        else begin
+                            dcache_offset_w <= dcache_offset_w + 1'b1;
+                            stage_w <= stage_w >> 1;
+                        end
                     end
                 end
                 stage_w[3]:begin
                     if (bvalid) begin
                         bready <= 1'b0;
-                        stage_w <= {1'b0,1'b1,{10{1'b0}}};
+                        stage_w <= {3'b0,1'b1,{10{1'b0}}};
                     end
                 end
                 stage_w[4]:begin
@@ -409,10 +463,10 @@ module axi_control_v5(
                 stage_w[6]:begin
                     if (bvalid) begin
                         bready <= 1'b0;
-                        stage_w <= {1'b0,1'b1,{10{1'b0}}};
+                        stage_w <= {3'b0,1'b1,{10{1'b0}}};
                     end
                 end
-                stage_w[10]:begin
+                stage_w[13]:begin
                     if (stage[11]) begin
                         stage_w <= `STAGE_WIDTH'b1;        
                     end

@@ -38,10 +38,7 @@ module ex (
 
     // data sram interface
     
-    output wire [`DATA_SRAM_WD-1:0] ex_dt_sram_bus,
-
-    // bpu
-    input wire [`BR_WD-1:0] bp_to_ex_bus
+    output wire [`DATA_SRAM_WD-1:0] ex_dt_sram_bus
 );
     wire [31:0] pc_i,inst_i;
     wire [11:0] br_op_i;
@@ -297,19 +294,13 @@ module ex (
 
     wire branch_e;
     wire [`RegBus] br_target;
-    wire bp_e;
-    wire [31:0] bp_target;
-    wire real_br_e;
-    wire [31:0] real_br_target;
     wire rs_eq_rt;
     wire rs_ge_z;
     wire rs_gt_z;
     wire rs_le_z;
     wire rs_lt_z;
     wire [31:0] pc_plus_4;
-    wire [31:0] pc_plus_8;
     assign pc_plus_4 = pc + 32'h4;
-    assign pc_plus_8 = pc + 32'h8;
 
     assign rs_eq_rt = (rf_rdata1_bp == rf_rdata2_bp);
     assign rs_ge_z = ~rf_rdata1_bp[31];
@@ -317,7 +308,7 @@ module ex (
     assign rs_le_z = (rf_rdata1_bp[31]==1'b1 || rf_rdata1_bp == 32'b0);
     assign rs_lt_z = (rf_rdata1_bp[31]);
 
-    assign real_br_e = inst_beq & rs_eq_rt
+    assign branch_e = inst_beq & rs_eq_rt
                     | inst_bne & ~rs_eq_rt
                     | inst_bgez & rs_ge_z
                     | inst_bgezal & rs_ge_z
@@ -330,31 +321,18 @@ module ex (
                     | inst_jr
                     | inst_jalr;
 
-    assign real_br_target = (inst_beq)   ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
-                            (inst_bne)   ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
-                            (inst_bgez)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
-                            (inst_bgezal)? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
-                            (inst_bgtz)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
-                            (inst_blez)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
-                            (inst_bltz)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
-                            (inst_bltzal)? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
-                            (inst_j)     ? {pc_plus_4[31:28],inst[25:0],2'b0} :
-                            (inst_jal)   ? {pc_plus_4[31:28],inst[25:0],2'b0} : 
-                            (inst_jr)    ? rf_rdata1_bp :
-                            (inst_jalr)  ? rf_rdata1_bp : 32'b0;
-
-    assign {
-        bp_e,
-        bp_target
-    } = bp_to_ex_bus;
-
-    wire jump_err, nojump_err, target_err;
-    assign target_err = (real_br_target != bp_target);
-    assign jump_err = (~bp_e & real_br_e) | (bp_e & real_br_e & target_err);
-    assign nojump_err = bp_e & ~real_br_e;
-    assign branch_e = jump_err | nojump_err;
-    assign br_target = jump_err ? real_br_target 
-                     : nojump_err ? pc_plus_8 : 32'b0;
+    assign br_target = (inst_beq)   ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_bne)   ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_bgez)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_bgezal)? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_bgtz)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_blez)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_bltz)  ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_bltzal)? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) :
+                       (inst_j)     ? {pc_plus_4[31:28],inst[25:0],2'b0} :
+                       (inst_jal)   ? {pc_plus_4[31:28],inst[25:0],2'b0} : 
+                       (inst_jr)    ? rf_rdata1_bp :
+                       (inst_jalr)  ? rf_rdata1_bp : 32'b0;
 
     assign br_bus = {
         branch_e,   // 32

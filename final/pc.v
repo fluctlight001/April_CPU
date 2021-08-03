@@ -10,7 +10,6 @@ module pc (
     // input wire branch_e,
     // input wire [`InstAddrBus] branch_target_addr,
     input wire [`BR_WD-1:0] br_bus,
-    input wire [`BR_WD-1:0] bp_bus,
     // output reg [`InstAddrBus] pc,
     // output reg ce,
     // output wire [31:0] excepttype_o
@@ -27,8 +26,6 @@ module pc (
     
     wire branch_e;
     wire [`InstAddrBus] branch_target_addr;
-    wire bp_e;
-    wire [`InstAddrBus] bp_target;
     
     assign pc_to_ic_bus = {
         excepttype_o,   // 64:33
@@ -41,16 +38,10 @@ module pc (
         branch_target_addr
     } = br_bus;
 
-    assign {
-        bp_e,
-        bp_target
-    } = bp_bus;
-    
     wire [`InstAddrBus] next_pc;
 
     assign next_pc = flush ? new_pc
                    : branch_e ? branch_target_addr 
-                   : bp_e ? bp_target
                    : pc + 32'h4;
 
 

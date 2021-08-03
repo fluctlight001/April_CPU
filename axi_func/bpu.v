@@ -44,44 +44,140 @@ module bpu (
 
     always @ (posedge clk) begin
         if (rst) begin
-            lru <= 1'b0;
+            lru <= 7'b0;
         end
         else if (hit_way[0] & ~hit_way[1]) begin
-            lru <= 1'b1;
+            lru[0] <= 1'b1;
+            lru[4] <= 1'b1;
+            lru[6] <= 1'b1;
         end
         else if (~hit_way[0] & hit_way[1]) begin
-            lru <= 1'b0;
+            lru[0] <= 1'b0;
+            lru[4] <= 1'b1;
+            lru[6] <= 1'b1;
+        end
+        else if (hit_way[2] & ~hit_way[3]) begin
+            lru[1] <= 1'b1;
+            lru[4] <= 1'b0;
+            lru[6] <= 1'b1;
+        end
+        else if (~hit_way[2] & hit_way[3]) begin
+            lru[1] <= 1'b0;
+            lru[4] <= 1'b0;
+            lru[6] <= 1'b1;
+        end
+        else if (hit_way[4] & ~hit_way[5]) begin
+            lru[2] <= 1'b1;
+            lru[5] <= 1'b1;
+            lru[6] <= 1'b0;
+        end
+        else if (~hit_way[4] & hit_way[5]) begin
+            lru[2] <= 1'b0;
+            lru[5] <= 1'b1;
+            lru[6] <= 1'b0;
+        end
+        else if (hit_way[6] & ~hit_way[7]) begin
+            lru[3] <= 1'b1;
+            lru[5] <= 1'b0;
+            lru[6] <= 1'b0;
+        end
+        else if (~hit_way[6] & hit_way[7]) begin
+            lru[3] <= 1'b0;
+            lru[5] <= 1'b0;
+            lru[6] <= 1'b0;
         end
         else if (br_e) begin
-            lru <= ~lru;
+            lru[0] <= ~lru[0];
+            lru[1] <= ~lru[1];
+            lru[2] <= ~lru[2];
+            lru[3] <= ~lru[3];
+            lru[4] <= ~lru[4];
+            lru[5] <= ~lru[5];
+            lru[6] <= ~lru[6];
+            lru[7] <= ~lru[7];            
         end
     end
 
     always @ (posedge clk) begin
         if (rst) begin
-            valid <= 2'b0;
+            valid <= 8'b0;
             branch_history_pc[0] <= 32'b0;
             branch_history_pc[1] <= 32'b0;
+            branch_history_pc[2] <= 32'b0;
+            branch_history_pc[3] <= 32'b0;
+            branch_history_pc[4] <= 32'b0;
+            branch_history_pc[5] <= 32'b0;
+            branch_history_pc[6] <= 32'b0;
+            branch_history_pc[7] <= 32'b0;
             branch_target[0] <= 32'b0;
             branch_target[1] <= 32'b0;
+            branch_target[2] <= 32'b0;
+            branch_target[3] <= 32'b0;
+            branch_target[4] <= 32'b0;
+            branch_target[5] <= 32'b0;
+            branch_target[6] <= 32'b0;
+            branch_target[7] <= 32'b0;
         end
-        else if (br_e & ~lru) begin
+        else if (br_e & ~lru[0] & ~lru[4] & ~lru[6]) begin
             valid[0] <= 1'b1;
             branch_history_pc[0] <= ex_pc;
             branch_target[0] <= br_target;
         end
-        else if (br_e & lru) begin
+        else if (br_e & lru[0] & ~lru[4] & ~lru[6]) begin
             valid[1] <= 1'b1;
             branch_history_pc[1] <= ex_pc;
             branch_target[1] <= br_target;
         end
+        else if (br_e & ~lru[1] & lru[4] & ~lru[6]) begin
+            valid[2] <= 1'b1;
+            branch_history_pc[2] <= ex_pc;
+            branch_target[2] <= br_target;
+        end
+        else if (br_e & lru[1] & lru[4] & ~lru[6]) begin
+            valid[3] <= 1'b1;
+            branch_history_pc[3] <= ex_pc;
+            branch_target[3] <= br_target;
+        end
+        else if (br_e & ~lru[2] & ~lru[5] & lru[6]) begin
+            valid[4] <= 1'b1;
+            branch_history_pc[4] <= ex_pc;
+            branch_target[4] <= br_target;
+        end
+        else if (br_e & lru[2] & ~lru[5] & lru[6]) begin
+            valid[5] <= 1'b1;
+            branch_history_pc[5] <= ex_pc;
+            branch_target[5] <= br_target;
+        end
+        else if (br_e & ~lru[3] & lru[5] & lru[6]) begin
+            valid[6] <= 1'b1;
+            branch_history_pc[6] <= ex_pc;
+            branch_target[6] <= br_target;
+        end
+        else if (br_e & lru[3] & lru[5] & lru[6]) begin
+            valid[7] <= 1'b1;
+            branch_history_pc[7] <= ex_pc;
+            branch_target[7] <= br_target;
+        end
+
     end
     
     assign hit_way[0] = valid[0] & (branch_history_pc[0] == ic_pc);
     assign hit_way[1] = valid[1] & (branch_history_pc[1] == ic_pc);
-    assign bp_e = hit_way[0] | hit_way[1];
+    assign hit_way[2] = valid[2] & (branch_history_pc[2] == ic_pc);
+    assign hit_way[3] = valid[3] & (branch_history_pc[3] == ic_pc);
+    assign hit_way[4] = valid[4] & (branch_history_pc[4] == ic_pc);
+    assign hit_way[5] = valid[5] & (branch_history_pc[5] == ic_pc);
+    assign hit_way[6] = valid[6] & (branch_history_pc[6] == ic_pc);
+    assign hit_way[7] = valid[7] & (branch_history_pc[7] == ic_pc);
+    assign bp_e = hit_way[0] | hit_way[1] | hit_way[2] | hit_way[3] | hit_way[4] | hit_way[5] | hit_way[6] | hit_way[7];
     assign bp_target = hit_way[0] ? branch_target[0]
-                     : hit_way[1] ? branch_target[1] : 32'b0;
+                     : hit_way[1] ? branch_target[1]
+                     : hit_way[2] ? branch_target[2]
+                     : hit_way[3] ? branch_target[3]
+                     : hit_way[4] ? branch_target[4]
+                     : hit_way[5] ? branch_target[5]
+                     : hit_way[6] ? branch_target[6]
+                     : hit_way[7] ? branch_target[7] : 32'b0;
 
 
 
